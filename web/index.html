@@ -1,1 +1,419 @@
-<h1>x</h1>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070b12">
+<title>SkyGuard — Passive Drone Detection</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23070b12'/%3E%3Cpath d='M16 5l9 4v7c0 5-4 9-9 11-5-2-9-6-9-11V9z' fill='none' stroke='%234cc9f0' stroke-width='2'/%3E%3Ccircle cx='16' cy='15' r='3' fill='%23ff3b5c'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#070b12; --bg2:#0b111c; --panel:#0e1522; --panel2:#121c2d; --line:#1b2a40; --line2:#26395a;
+  --tx:#d7e3f4; --mut:#7d8fa9; --dim:#4a5b75;
+  --cy:#4cc9f0; --gr:#2ee59d; --am:#ffb020; --rd:#ff3b5c; --vi:#9d7bff;
+  --lvl:var(--gr);
+  --r:12px; --mono:ui-monospace,SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace;
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+:root[data-theme="light"]{--bg:#eef2f8;--bg2:#e6ecf5;--panel:#fff;--panel2:#f3f6fb;--line:#d5deeb;--line2:#bccadf;--tx:#0f1b2d;--mut:#51637f;--dim:#8497b2}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tx);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+body{min-height:100vh;background:
+  radial-gradient(1200px 500px at 85% -10%,rgba(76,201,240,.08),transparent 60%),
+  radial-gradient(900px 500px at -10% 110%,rgba(157,123,255,.06),transparent 60%),var(--bg)}
+body.l-possible{--lvl:var(--am)} body.l-drone{--lvl:var(--rd)}
+body.l-drone::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;box-shadow:inset 0 0 0 3px var(--rd),inset 0 0 120px rgba(255,59,92,.28);animation:alarm 1s infinite}
+@keyframes alarm{50%{opacity:.25}}
+header{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);background:linear-gradient(var(--bg2),transparent);position:sticky;top:0;z-index:20;backdrop-filter:blur(8px);flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.18em;font-size:15px}
+.logo svg{width:28px;height:28px}
+.logo small{font-weight:500;letter-spacing:.08em;color:var(--mut);font-size:11px;display:block;margin-top:1px}
+.pill{font-family:var(--mono);font-size:12px;padding:5px 11px;border-radius:99px;border:1px solid var(--line2);color:var(--mut);display:inline-flex;gap:7px;align-items:center;white-space:nowrap}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--dim);display:inline-block}
+.pill.ok i{background:var(--gr);box-shadow:0 0 8px var(--gr)} .pill.sim{color:var(--am);border-color:rgba(255,176,32,.4)} .pill.live{color:var(--gr);border-color:rgba(46,229,157,.4)}
+.status{margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.lvl{font-weight:800;letter-spacing:.14em;font-size:14px;padding:7px 16px;border-radius:8px;color:#04121a;background:var(--lvl);transition:background .3s}
+body.l-drone .lvl{animation:blink .8s infinite;color:#fff}
+@keyframes blink{50%{filter:brightness(.55)}}
+main{padding:16px 18px 40px;display:grid;gap:14px;grid-template-columns:repeat(12,1fr);max-width:1700px;margin:0 auto}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel) 60%,var(--panel2));border:1px solid var(--line);border-radius:var(--r);padding:14px;position:relative;min-width:0}
+.card h3{margin:0 0 10px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--mut);font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card h3 span{font-family:var(--mono);letter-spacing:0;text-transform:none;color:var(--dim);font-weight:400}
+.c-cam{grid-column:span 7} .c-gauge{grid-column:span 5}
+.c-map{grid-column:span 5} .c-spec{grid-column:span 4} .c-tl{grid-column:span 3}
+.c-rf{grid-column:span 5} .c-health{grid-column:span 3} .c-test{grid-column:span 4}
+.c-log{grid-column:span 12}
+@media(max-width:1100px){.c-cam,.c-gauge,.c-map,.c-spec,.c-tl,.c-rf,.c-health,.c-test{grid-column:span 12}}
+@media(min-width:700px) and (max-width:1100px){.c-map,.c-spec{grid-column:span 6}.c-tl,.c-health{grid-column:span 6}}
+@media(max-width:600px){main{padding:12px 12px 40px;gap:12px}header{padding:10px 12px}}
+.cam{position:relative;aspect-ratio:16/9;background:#02050a;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.cam img{width:100%;height:100%;object-fit:cover;display:block}
+.cam .hud{position:absolute;inset:0;pointer-events:none;font-family:var(--mono);font-size:11px;color:#b9f3ff}
+.cam .hud::before,.cam .hud::after{content:"";position:absolute;width:26px;height:26px;border:2px solid rgba(76,201,240,.7)}
+.cam .hud::before{top:8px;left:8px;border-right:0;border-bottom:0}.cam .hud::after{bottom:8px;right:8px;border-left:0;border-top:0}
+.cam .hud b{position:absolute;font-weight:500;text-shadow:0 1px 3px #000}
+.cam .tl{top:12px;left:42px}.cam .tr{top:12px;right:12px;text-align:right}.cam .bl{bottom:12px;left:12px}.cam .br{bottom:12px;right:42px}
+.cam .nosig{position:absolute;inset:0;display:grid;place-items:center;color:var(--dim);font-family:var(--mono);font-size:12px;background:repeating-linear-gradient(0deg,#050a12 0 3px,#060c15 3px 6px)}
+.rec{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--rd);margin-right:6px;animation:blink 1.2s infinite}
+.gwrap{display:grid;grid-template-columns:1fr;gap:10px}
+#gauge{width:100%;max-width:380px;margin:0 auto;display:block}
+.chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.chip{font-family:var(--mono);font-size:11px;padding:4px 9px;border-radius:6px;border:1px solid var(--line2);color:var(--dim);transition:.25s;min-width:64px;text-align:center}
+.chip.on{color:#04121a;background:var(--cy);border-color:var(--cy);box-shadow:0 0 14px rgba(76,201,240,.45)}
+.chip.on.rid{background:var(--vi);border-color:var(--vi);box-shadow:0 0 14px rgba(157,123,255,.45)}
+.bars{display:grid;gap:7px;margin-top:6px}
+.bar{display:grid;grid-template-columns:62px 1fr 38px;gap:8px;align-items:center;font-family:var(--mono);font-size:11px;color:var(--mut)}
+.bar div{height:7px;background:var(--line);border-radius:9px;overflow:hidden}.bar div i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cy),var(--gr));transition:width .4s}
+.hw{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;margin-top:12px}
+.lcd{font-family:var(--mono);background:#0a2a14;color:#c7ffd0;border-radius:8px;padding:9px 12px;border:2px solid #1e1e1e;box-shadow:inset 0 0 18px rgba(0,0,0,.6);font-size:15px;letter-spacing:.12em;white-space:pre;line-height:1.35;transition:background .2s,color .2s;overflow:hidden}
+.lcd.amber{background:#3a2606;color:#ffd9a0}.lcd.red,.lcd.flash_red{background:#3a0a12;color:#ffc2cb}.lcd.flash_red{animation:blink .7s infinite}
+.mx{display:grid;grid-template-columns:repeat(13,5px);gap:2px;padding:6px;background:#050a12;border-radius:6px;border:1px solid var(--line)}
+.mx i{width:5px;height:5px;border-radius:1px;background:#10243a}.mx i.on{background:#4aa3ff;box-shadow:0 0 5px #4aa3ff}
+canvas{display:block;width:100%}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:10.5px;color:var(--mut);margin-top:8px}
+.legend b{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);text-align:left;padding:4px 6px;font-weight:600}
+td{padding:6px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+tr.flag td{color:var(--rd)} tr.flag td:first-child{box-shadow:inset 3px 0 var(--rd)}
+tr.weak td{color:var(--am)}
+.rs{display:inline-block;height:6px;border-radius:5px;background:var(--cy);vertical-align:middle;margin-right:6px}
+.tag{font-size:10px;padding:1px 6px;border-radius:5px;border:1px solid var(--line2);color:var(--mut);margin-right:4px}
+.tag.w{color:var(--cy)}.tag.b{color:var(--vi)}
+.scroll{max-height:290px;overflow:auto}
+.nodes{display:grid;gap:10px}
+.node{border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg2)}
+.node h4{margin:0 0 8px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.m{display:grid;grid-template-columns:44px 1fr 44px;gap:8px;align-items:center;font-family:var(--mono);font-size:11px;color:var(--mut);margin-top:5px}
+.m div{height:6px;background:var(--line);border-radius:8px;overflow:hidden}.m i{display:block;height:100%;background:var(--gr);transition:width .5s}
+.sens{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+button{font:600 12px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--tx);background:var(--panel2);border:1px solid var(--line2);border-radius:9px;padding:11px 10px;cursor:pointer;transition:.15s;min-height:44px}
+button:hover{border-color:var(--cy);box-shadow:0 0 0 3px rgba(76,201,240,.12)}button:active{transform:scale(.98)}
+button.go{background:linear-gradient(135deg,#1a6fa5,#2b9fd0);border-color:#4cc9f0;color:#fff;grid-column:span 2}
+button.stop{grid-column:span 2}
+.demo{margin-top:12px}.prog{height:6px;background:var(--line);border-radius:6px;position:relative;overflow:hidden}.prog i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--cy),var(--rd));width:0;transition:width .6s linear}
+.phases{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:5px}
+.note{font-size:11.5px;color:var(--mut);line-height:1.5;margin-top:10px}
+.ev{display:grid;grid-template-columns:132px 1fr;gap:12px;padding:10px 0;border-top:1px solid var(--line);align-items:center}
+.ev:first-child{border-top:0}
+.ev img,.ev .noimg{width:132px;height:74px;object-fit:cover;border-radius:7px;border:1px solid var(--line);background:#02050a;display:grid;place-items:center;color:var(--dim);font:10px var(--mono)}
+.ev h5{margin:0 0 4px;font-size:13px}.ev p{margin:2px 0;font-family:var(--mono);font-size:11px;color:var(--mut)}
+.badge{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:5px;margin-left:8px;vertical-align:1px}
+.badge.d{background:rgba(255,59,92,.16);color:var(--rd);border:1px solid rgba(255,59,92,.4)}.badge.s{background:rgba(255,176,32,.12);color:var(--am);border:1px solid rgba(255,176,32,.35)}
+.empty{color:var(--dim);font-family:var(--mono);font-size:12px;padding:18px 0;text-align:center}
+.foot{grid-column:span 12;text-align:center;color:var(--dim);font-size:11px;font-family:var(--mono);padding:6px}
+.tg{cursor:pointer;background:none;border:1px solid var(--line2);border-radius:99px;padding:5px 10px;min-height:0;font-size:11px;letter-spacing:0;text-transform:none}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 32 32"><path d="M16 3l11 5v8c0 6-5 10-11 13C10 26 5 22 5 16V8z" fill="none" stroke="#4cc9f0" stroke-width="2"/><circle cx="16" cy="15" r="3.2" fill="var(--lvl)"/><path d="M8 15h5M19 15h5M16 8v4M16 18v4" stroke="#4cc9f0" stroke-width="1.5"/></svg>
+    <div>SKYGUARD<small>PASSIVE DRONE DETECTION · NODE A</small></div>
+  </div>
+  <div class="status">
+    <span class="pill" id="pConn"><i></i><span>connecting</span></span>
+    <span class="pill" id="pMode">—</span>
+    <span class="pill" id="pClock">--:--:--</span>
+    <button class="tg" id="theme" title="Toggle theme">◐</button>
+    <div class="lvl" id="lvl">CLEAR</div>
+  </div>
+</header>
+
+<main>
+  <section class="card c-cam">
+    <h3>Optical · Node A camera <span id="camMeta">YOLOv8n</span></h3>
+    <div class="cam"><img id="cam" alt="" hidden><div class="nosig" id="nosig">NO SIGNAL</div>
+      <div class="hud"><b class="tl"><span class="rec"></span>LIVE · NODE A</b><b class="tr" id="hudR">—</b><b class="bl" id="hudL">—</b><b class="br" id="hudB">—</b></div></div>
+  </section>
+
+  <section class="card c-gauge">
+    <h3>Fusion confidence <span id="fz">z = —</span></h3>
+    <div class="gwrap">
+      <canvas id="gauge" width="760" height="440"></canvas>
+      <div class="chips" id="chips"></div>
+      <div class="bars" id="bars"></div>
+      <div class="hw"><div class="lcd" id="lcd">CLEAR           \nSkyGuard armed  </div><div><div class="mx" id="mx" title="UNO Q 8x13 LED matrix"></div></div></div>
+    </div>
+  </section>
+
+  <section class="card c-map">
+    <h3>Room map · 2-node RSSI localization <span id="mapMeta">—</span></h3>
+    <canvas id="map" width="900" height="760"></canvas>
+    <div class="legend"><span><b style="background:var(--cy)"></b>Node A (cam)</span><span><b style="background:var(--vi)"></b>Node B (UNO Q)</span><span><b style="background:var(--rd)"></b>estimated drone</span><span><b style="background:none;border:1px dashed var(--am)"></b>ground truth (sim)</span></div>
+  </section>
+
+  <section class="card c-spec">
+    <h3>Acoustic · rotor harmonics <span id="specMeta">0–4 kHz</span></h3>
+    <canvas id="spec" width="720" height="300"></canvas>
+    <div class="note" id="specNote">Harmonic comb detector: f0 · harmonics · comb contrast (dB)</div>
+  </section>
+
+  <section class="card c-tl">
+    <h3>Threat timeline <span>last 2 min</span></h3>
+    <canvas id="tl" width="480" height="300"></canvas>
+    <div class="note" id="trendNote">—</div>
+  </section>
+
+  <section class="card c-rf">
+    <h3>RF environment · passive <span id="rfMeta">Wi-Fi + BLE</span></h3>
+    <div class="scroll"><table><thead><tr><th>Node</th><th>Net / device</th><th>RSSI</th><th>Score</th><th>Why</th></tr></thead><tbody id="rfb"></tbody></table></div>
+  </section>
+
+  <section class="card c-health">
+    <h3>Node health</h3>
+    <div class="nodes" id="nodes"></div>
+  </section>
+
+  <section class="card c-test">
+    <h3>Demo &amp; detector tests</h3>
+    <div class="btns">
+      <button class="go" id="bDemo">▶ Run demo: drone approaches</button>
+      <button data-t="acoustic">Test · Audio</button><button data-t="wifi">Test · Wi-Fi RF</button>
+      <button data-t="vision">Test · Vision</button><button data-t="ble">Test · Remote ID</button>
+      <button class="stop" id="bStop">■ Stop / reset</button>
+    </div>
+    <div class="demo"><div class="prog"><i id="prog"></i></div><div class="phases"><span>approach</span><span>audio</span><span>RF</span><span>vision</span><span>ALERT</span><span>leaves</span></div></div>
+    <div class="note" id="spoken">Nest announcements appear here.<br>Test buttons push a simulated drone through the full pipeline (detectors → fusion → alerts).</div>
+  </section>
+
+  <section class="card c-log">
+    <h3>Event log · SQLite <span id="evMeta">0 events</span></h3>
+    <div id="events"><div class="empty">No detections yet — all quiet.</div></div>
+  </section>
+  <div class="foot">SkyGuard · detection only — fully passive, never transmits or interferes · hackPHS 2026 · Into the Skies</div>
+</main>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const C = {cy:'#4cc9f0',gr:'#2ee59d',am:'#ffb020',rd:'#ff3b5c',vi:'#9d7bff'};
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const LV = {"CLEAR":['l-clear',C.gr],"POSSIBLE":['l-possible',C.am],"DRONE DETECTED":['l-drone',C.rd]};
+const SRC = {vision:'VISION',acoustic:'AUDIO',wifi:'WI-FI RF',ble:'REMOTE ID'};
+let S = null, trail = [], specBuf = {A:[],B:[]}, lastSpecT = {}, shown = 0, dispConf = 0;
+
+// ---------- theme
+const th = localStorage.getItem('sg-theme'); if (th) document.documentElement.dataset.theme = th;
+$('theme').onclick = () => { const d = document.documentElement; d.dataset.theme = d.dataset.theme === 'light' ? 'dark' : 'light'; try{localStorage.setItem('sg-theme', d.dataset.theme)}catch(e){} draw(); };
+
+// ---------- chips / matrix
+$('chips').innerHTML = Object.entries(SRC).map(([k,v]) => `<span class="chip ${k==='ble'?'rid':''}" id="chip-${k}">${v}</span>`).join('');
+$('bars').innerHTML = Object.entries(SRC).map(([k,v]) => `<div class="bar"><span>${v}</span><div><i id="bar-${k}"></i></div><span id="bv-${k}">0.00</span></div>`).join('');
+const mx = $('mx'); for (let i=0;i<104;i++) mx.appendChild(document.createElement('i'));
+const WARN = ["0000001000000","0000011100000","0000011100000","0000110110000","0000110110000","0001110111000","0000000000000","0000110110000"];
+function matrix(mode, t) {
+  const cells = mx.children;
+  for (let r=0;r<8;r++) for (let c=0;c<13;c++) {
+    let on=false;
+    if (mode==='DRONE DETECTED') on = (Math.floor(t*3)%2===0) && WARN[r][c]==='1';
+    else if (mode==='POSSIBLE') on = (c===((Math.floor(t*4))%13)) || (r===3&&c%4===0);
+    else on = (c===(Math.floor(t*3)%13) && (r===3||r===4)) ;
+    cells[r*13+c].className = on ? 'on' : '';
+  }
+}
+
+// ---------- WebSocket
+let ws, retry = 0, pollTimer = null;
+function connect() {
+  const p = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${p}://${location.host}/ws`);
+  ws.onopen = () => { retry = 0; setConn(true); };
+  ws.onclose = () => { setConn(false); setTimeout(connect, Math.min(5000, 600 * ++retry)); };
+  ws.onmessage = e => {
+    const m = JSON.parse(e.data);
+    if (m.type === 'frame') onFrame(m); else if (m.type === 'state') { S = m; onState(); }
+  };
+}
+function setConn(ok) { const p = $('pConn'); p.className = 'pill ' + (ok ? 'ok' : ''); p.lastChild.textContent = ok ? 'link up' : 'reconnecting…'; }
+function onFrame(m) {
+  if (m.node !== 'A') return;
+  $('cam').hidden = false; $('nosig').hidden = true; $('cam').src = 'data:image/jpeg;base64,' + m.jpg;
+  $('hudR').innerHTML = `targets <b style="position:static;color:${m.n?C.rd:'inherit'}">${m.n}</b>`;
+}
+
+// ---------- state → DOM
+function onState() {
+  const f = S.fusion, [cls, col] = LV[f.level] || LV.CLEAR;
+  document.body.className = cls;
+  $('lvl').textContent = f.level;
+  const sim = S.simulated;
+  const pm = $('pMode'); pm.className = 'pill ' + (sim ? 'sim' : 'live'); pm.textContent = (sim ? 'SIMULATED · ' : 'LIVE · ') + S.profile.toUpperCase();
+  $('fz').textContent = 'z = ' + f.z;
+  for (const k of Object.keys(SRC)) {
+    const e = f.evidence[k] || 0;
+    $('chip-' + k).classList.toggle('on', f.sources.includes(k));
+    $('bar-' + k).style.width = Math.round(e * 100) + '%'; $('bv-' + k).textContent = e.toFixed(2);
+  }
+  const lcd = S.lcd; $('lcd').textContent = lcd.l1.padEnd(16) + '\n' + lcd.l2.padEnd(16); $('lcd').className = 'lcd ' + lcd.color;
+  $('camMeta').textContent = S.vision_model;
+  const v = S.latest['A:vision'];
+  if (v && v.meta.bearing !== undefined && v.score > .5) { $('hudL').textContent = `BRG ${v.meta.bearing}° ${v.meta.compass} · ${v.meta.motion}`; $('hudB').textContent = `conf ${v.score.toFixed(2)}`; }
+  else { $('hudL').textContent = 'scanning…'; $('hudB').textContent = ''; }
+  const a = S.latest['A:acoustic'] || S.latest['B:acoustic'];
+  if (a) $('specNote').textContent = `f0 ${a.meta.f0_hz||'—'} Hz · harmonics ${a.meta.harmonics??'—'} · comb ${a.meta.comb_db??'—'} dB · score ${a.score.toFixed(2)}`;
+  // spectrogram buffers
+  for (const [n, rows] of Object.entries(S.spec || {})) {
+    const key = n + rows.length + (rows[0] ? rows[0].slice(0,6).join() : '') ;
+    if (lastSpecT[n] !== key) { lastSpecT[n] = key; (specBuf[n] = specBuf[n] || []).push(...rows); specBuf[n] = specBuf[n].slice(-120); }
+  }
+  // loc trail
+  const l = S.loc;
+  if (l && l.x !== undefined && f.level !== 'CLEAR') { if (!trail.length || Math.hypot(trail.at(-1)[0]-l.x, trail.at(-1)[1]-l.y) > .15) trail.push([l.x,l.y]); trail = trail.slice(-60); } else if (f.level==='CLEAR') trail = [];
+  $('mapMeta').textContent = l && l.zone ? `zone ${l.zone} · ${l.compass} · ${l.trend} · ±${l.spread_m}m` : 'no RF fix';
+  $('trendNote').innerHTML = l && l.trend ? `RSSI slope <b>${l.slope_db_s} dB/s</b> → <b>${l.trend.toUpperCase()}</b>. Position accuracy is zone-level (~±2–3 m).` : 'Waiting for RF fix from both nodes.';
+  renderRF(); renderNodes(); renderEvents();
+  const sp = S.spoken || []; if (sp.length) $('spoken').innerHTML = '🔊 Nest: “' + sp[sp.length-1] + '”';
+  $('bDemo').textContent = S.demo ? '⟳ Restart demo' : '▶ Run demo: drone approaches';
+  $('prog').style.width = S.demo ? Math.min(100, S.demo_t / 70 * 100) + '%' : '0%';
+}
+function rssiBar(r) { const w = Math.max(4, Math.min(60, (r + 95) * 1.1)); return `<span class="rs" style="width:${w}px;opacity:${.4 + w/100}"></span>${r}`; }
+function renderRF() {
+  const rows = (S.rf || []).filter(r => r.kind === 'wifi' || r.remote_id || r.name);
+  $('rfMeta').textContent = rows.length + ' emitters heard';
+  $('rfb').innerHTML = rows.slice(0, 24).map(r => {
+    const sc = r.score ?? (r.remote_id ? .95 : 0), cls = sc >= .5 ? 'flag' : sc >= .2 ? 'weak' : '';
+    const nm = r.kind === 'ble' ? (r.name || r.addr) : (r.ssid || '(hidden)');
+    return `<tr class="${cls}"><td><span class="tag ${r.kind==='ble'?'b':'w'}">${r.node}·${r.kind==='ble'?'BLE':'WiFi'}</span></td><td title="${r.bssid||r.addr||''}">${nm}</td><td>${rssiBar(r.rssi_s ?? r.rssi)}</td><td>${sc ? sc.toFixed(2) : '—'}</td><td>${r.why || (r.remote_id ? 'ASTM F3411 Remote ID' : '')}${r.trend && r.trend!=='steady' && r.trend!=='unknown' && sc>=.5 ? ' · '+r.trend : ''}</td></tr>`;
+  }).join('') || '<tr><td colspan=5 class="empty">No emitters heard.</td></tr>';
+}
+function renderNodes() {
+  const h = S.health || {}, ids = ['A','B'];
+  $('nodes').innerHTML = ids.map(id => {
+    const n = h[id], age = n ? (S.t - n.t) : 99, up = n && age < 8;
+    const bar = (lab, v, max, unit) => `<div class="m"><span>${lab}</span><div><i style="width:${v==null?0:Math.min(100,v/max*100)}%;background:${v>max*.8?C.rd:v>max*.6?C.am:C.gr}"></i></div><span>${v==null?'—':Math.round(v)+unit}</span></div>`;
+    return `<div class="node"><h4>${id==='A'?'Node A · Raspberry Pi 4':'Node B · Arduino UNO Q'}<span class="pill ${up?'ok':''}"><i></i>${up?'online':'offline'}</span></h4>
+      ${n? bar('CPU', n.cpu, 100, '%') + bar('TEMP', n.temp, 85, '°C') + bar('MEM', n.mem, 100, '%') : '<div class="empty">no heartbeat</div>'}
+      <div class="sens">${(n?.sensors||[]).map(s=>`<span class="tag w">${s}</span>`).join('')}${n?.sim?'<span class="tag">sim</span>':''}</div></div>`;
+  }).join('');
+}
+let evKey = '';
+function renderEvents() {
+  const ev = S.events || []; const key = JSON.stringify(ev.map(e => [e.id, e.t_end, e.conf]));
+  if (key === evKey) return; evKey = key;
+  $('evMeta').textContent = ev.length + ' events';
+  if (!ev.length) return;
+  $('events').innerHTML = ev.map(e => {
+    const d = new Date(e.t * 1000), dur = e.t_end ? Math.round(e.t_end - e.t) + 's' : 'ongoing';
+    const srcs = (e.sources || '').split(',').filter(Boolean).map(s => `<span class="tag w">${SRC[s]||s}</span>`).join('');
+    return `<div class="ev">${e.snapshot ? `<img loading="lazy" src="/snap/${e.snapshot}" alt="snapshot">` : '<div class="noimg">no frame</div>'}
+      <div><h5>${e.level} · ${Math.round(e.conf*100)}% <span class="badge ${e.sim?'s':'d'}">${e.sim?'SIMULATED':'LIVE'}</span></h5>
+      <p>${d.toLocaleTimeString()} · ${dur} · zone ${e.zone} · ${e.compass}</p><p>${srcs}</p></div></div>`;
+  }).join('');
+}
+
+// ---------- canvases
+function fit(c) { const r = c.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1); const w = Math.round(r.width * d); if (c.width !== w) { c.height = Math.round(w * c.dataset.ar); c.width = w; } return c.getContext('2d'); }
+for (const [id, ar] of [['gauge', .56], ['map', .84], ['spec', .42], ['tl', .62]]) $(id).dataset.ar = ar;
+
+function drawGauge() {
+  const c = $('gauge'), x = fit(c), W = c.width, H = c.height; x.clearRect(0,0,W,H);
+  const cx = W/2, cy = H*.78, R = W*.36, a0 = Math.PI*.8, a1 = Math.PI*2.2;
+  const lvlCol = S ? (LV[S.fusion.level]||LV.CLEAR)[1] : C.gr;
+  dispConf += ((S ? S.fusion.confidence : 0) - dispConf) * .18;
+  x.lineCap = 'round'; x.lineWidth = W*.05;
+  x.strokeStyle = css('--line'); x.beginPath(); x.arc(cx, cy, R, a0, a1); x.stroke();
+  const zones = [[0,.35,C.gr],[.35,.8,C.am],[.8,1,C.rd]];
+  zones.forEach(([s,e,col]) => { x.strokeStyle = col + '40'; x.beginPath(); x.arc(cx, cy, R, a0 + (a1-a0)*s, a0 + (a1-a0)*e); x.stroke(); });
+  x.strokeStyle = lvlCol; x.shadowColor = lvlCol; x.shadowBlur = 18; x.beginPath(); x.arc(cx, cy, R, a0, a0 + (a1-a0)*dispConf); x.stroke(); x.shadowBlur = 0;
+  x.lineWidth = 2; x.strokeStyle = css('--dim'); x.fillStyle = css('--mut'); x.font = `${W*.028}px ${css('--mono')}`; x.textAlign = 'center';
+  for (let i = 0; i <= 10; i++) { const a = a0 + (a1-a0)*i/10, r1 = R + W*.04, r2 = R + W*.055; x.beginPath(); x.moveTo(cx+Math.cos(a)*r1, cy+Math.sin(a)*r1); x.lineTo(cx+Math.cos(a)*r2, cy+Math.sin(a)*r2); x.stroke(); if (i%2===0) x.fillText(i*10, cx+Math.cos(a)*(R+W*.095), cy+Math.sin(a)*(R+W*.095)+4); }
+  const na = a0 + (a1-a0)*dispConf; x.strokeStyle = css('--tx'); x.lineWidth = W*.012; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx+Math.cos(na)*R*.82, cy+Math.sin(na)*R*.82); x.stroke();
+  x.fillStyle = css('--tx'); x.beginPath(); x.arc(cx, cy, W*.022, 0, 7); x.fill();
+  x.fillStyle = lvlCol; x.font = `800 ${W*.11}px ${css('--sans')}`; x.fillText(Math.round(dispConf*100) + '%', cx, cy - R*.28);
+  x.fillStyle = css('--mut'); x.font = `${W*.03}px ${css('--mono')}`; x.fillText(S ? S.fusion.level : '—', cx, cy - R*.28 + W*.05);
+  x.fillText('thresholds  possible ≥35   drone ≥80 (+2 sensors)', cx, H - 6);
+}
+
+function drawMap() {
+  const c = $('map'), x = fit(c), W = c.width, H = c.height; x.clearRect(0,0,W,H);
+  const room = S ? S.room : {w:12,h:8,node_a:[1,1],node_b:[11,7],camera_heading_deg:45,camera_hfov_deg:70};
+  const ext = (S && S.loc && S.loc.extent) || [-8,-8,room.w+8,room.h+8];
+  const sx = W/(ext[2]-ext[0]), sy = H/(ext[3]-ext[1]), sc = Math.min(sx, sy);
+  const ox = (W - (ext[2]-ext[0])*sc)/2, oy = (H - (ext[3]-ext[1])*sc)/2;
+  const X = v => ox + (v-ext[0])*sc, Y = v => oy + (ext[3]-v)*sc;
+  // outside hatch
+  x.fillStyle = css('--bg2'); x.fillRect(ox, oy, (ext[2]-ext[0])*sc, (ext[3]-ext[1])*sc);
+  // heat
+  if (S && S.heat) { const hm = S.heat, ny = hm.length, nx = hm[0].length, cw = (ext[2]-ext[0])*sc/nx, ch = (ext[3]-ext[1])*sc/ny;
+    for (let j=0;j<ny;j++) for (let i=0;i<nx;i++) { const v = hm[j][i]; if (v > .06) { x.fillStyle = `rgba(255,59,92,${v*.55})`; x.fillRect(ox+i*cw, oy+j*ch, cw+.5, ch+.5); } } }
+  // room
+  x.fillStyle = css('--panel'); x.globalAlpha = .55; x.fillRect(X(0), Y(room.h), room.w*sc, room.h*sc); x.globalAlpha = 1;
+  x.strokeStyle = css('--line2'); x.lineWidth = 2; x.strokeRect(X(0), Y(room.h), room.w*sc, room.h*sc);
+  x.setLineDash([4,5]); x.lineWidth = 1; x.strokeStyle = css('--line');
+  for (let i=1;i<3;i++) { x.beginPath(); x.moveTo(X(room.w*i/3), Y(0)); x.lineTo(X(room.w*i/3), Y(room.h)); x.stroke(); x.beginPath(); x.moveTo(X(0), Y(room.h*i/3)); x.lineTo(X(room.w), Y(room.h*i/3)); x.stroke(); }
+  x.setLineDash([]);
+  const Z = [["NW","N","NE"],["W","C","E"],["SW","S","SE"]];
+  x.font = `${W*.026}px ${css('--mono')}`; x.textAlign = 'center'; x.fillStyle = css('--dim');
+  Z.forEach((row,r) => row.forEach((z,cc) => x.fillText(z, X(room.w*(cc+.5)/3), Y(room.h*(1-(r+.5)/3)) + 4)));
+  const hot = S && S.loc && S.loc.zone;
+  if (hot && S.fusion.level !== 'CLEAR') { Z.forEach((row,r) => row.forEach((z,cc) => { if (z===hot) { x.strokeStyle = C.rd; x.lineWidth = 2.5; x.strokeRect(X(room.w*cc/3)+2, Y(room.h*(1-r/3))+2, room.w/3*sc-4, room.h/3*sc-4); } })); }
+  // camera FOV
+  const A = room.node_a, B = room.node_b, hd = room.camera_heading_deg, hf = room.camera_hfov_deg;
+  x.fillStyle = 'rgba(76,201,240,.10)'; x.beginPath(); x.moveTo(X(A[0]), Y(A[1]));
+  const ang = a => (90 - a) * Math.PI/180;
+  x.arc(X(A[0]), Y(A[1]), 12*sc, -ang(hd-hf/2), -ang(hd+hf/2)); x.closePath(); x.fill();
+  x.strokeStyle = 'rgba(76,201,240,.35)'; x.lineWidth = 1; x.stroke();
+  // trail
+  if (trail.length > 1) { x.strokeStyle = 'rgba(255,59,92,.5)'; x.lineWidth = 2; x.beginPath(); trail.forEach((p,i) => i ? x.lineTo(X(p[0]), Y(p[1])) : x.moveTo(X(p[0]), Y(p[1]))); x.stroke(); }
+  // nodes
+  const node = (p, col, lab) => { x.fillStyle = col; x.shadowColor = col; x.shadowBlur = 14; x.beginPath(); x.arc(X(p[0]), Y(p[1]), W*.016, 0, 7); x.fill(); x.shadowBlur = 0; x.fillStyle = css('--tx'); x.font = `700 ${W*.03}px ${css('--sans')}`; x.fillText(lab, X(p[0]), Y(p[1]) - W*.03); };
+  node(A, C.cy, 'A'); node(B, C.vi, 'B');
+  // RF rings from node RSSI
+  if (S) for (const [nid, p, col] of [['A',A,C.cy],['B',B,C.vi]]) { const d = S.latest[nid + ':wifi']; if (d && d.score > .5 && d.age < 6 && d.meta.rssi != null) { const r = Math.pow(10, (-50 - d.meta.rssi) / 27); x.strokeStyle = col + '70'; x.setLineDash([3,5]); x.lineWidth = 1.5; x.beginPath(); x.arc(X(p[0]), Y(p[1]), r*sc, 0, 7); x.stroke(); x.setLineDash([]); } }
+  // truth
+  if (S && S.truth) { x.strokeStyle = C.am; x.setLineDash([3,3]); x.lineWidth = 2; x.beginPath(); x.arc(X(S.truth[0]), Y(S.truth[1]), W*.02, 0, 7); x.stroke(); x.setLineDash([]); x.fillStyle = C.am; x.font = `${W*.022}px ${css('--mono')}`; x.fillText('GT', X(S.truth[0]), Y(S.truth[1]) - W*.03); }
+  // estimate
+  if (S && S.loc && S.loc.x !== undefined && S.fusion.level !== 'CLEAR') {
+    const l = S.loc, px = X(l.x), py = Y(l.y), t = Date.now()/1000, pulse = (t % 1.2) / 1.2;
+    x.strokeStyle = C.rd + '55'; x.lineWidth = 1.5; x.beginPath(); x.arc(px, py, l.spread_m*sc, 0, 7); x.stroke();
+    x.strokeStyle = `rgba(255,59,92,${1-pulse})`; x.beginPath(); x.arc(px, py, W*.02 + pulse*W*.05, 0, 7); x.stroke();
+    x.fillStyle = C.rd; x.shadowColor = C.rd; x.shadowBlur = 16; x.beginPath(); x.arc(px, py, W*.016, 0, 7); x.fill(); x.shadowBlur = 0;
+    x.fillStyle = css('--tx'); x.font = `700 ${W*.026}px ${css('--mono')}`; x.fillText(l.trend === 'approaching' ? '▲ approaching' : l.trend === 'leaving' ? '▼ leaving' : '● ' + l.trend, px, py + W*.05);
+  }
+  x.fillStyle = css('--dim'); x.font = `${W*.022}px ${css('--mono')}`; x.textAlign = 'left'; x.fillText('N ↑', 8, 18); x.textAlign = 'right'; x.fillText(`room ${room.w}×${room.h} m · grid ${(ext[2]-ext[0])}×${(ext[3]-ext[1])} m`, W-8, H-8);
+}
+
+const cmap = v => { const t = v/255; return [Math.round(255*Math.min(1,Math.max(0,3*t-1.2))), Math.round(255*Math.min(1,Math.max(0,3*t-.4)) * (t>.2)), Math.round(255*(0.25+ .75*Math.min(1,t*2.2)) * (t>.05))]; };
+function drawSpec() {
+  const c = $('spec'), x = fit(c), W = c.width, H = c.height; x.fillStyle = '#03060c'; x.fillRect(0,0,W,H);
+  const nodes = ['A','B'].filter(n => specBuf[n] && specBuf[n].length), bh = H / Math.max(1, nodes.length);
+  x.font = `${W*.028}px ${css('--mono')}`;
+  nodes.forEach((n, k) => { const rows = specBuf[n], nb = rows[0].length, cw = W / 120, ch = bh / nb;
+    const off = document.createElement('canvas'); off.width = rows.length; off.height = nb; const ox = off.getContext('2d'), im = ox.createImageData(rows.length, nb);
+    rows.forEach((row, i) => row.forEach((v, j) => { const [r,g,b] = cmap(v), p = (((nb-1-j)*rows.length) + i)*4; im.data[p]=r; im.data[p+1]=g; im.data[p+2]=b; im.data[p+3]=255; }));
+    ox.putImageData(im, 0, 0); x.imageSmoothingEnabled = true; x.drawImage(off, W - rows.length*cw, k*bh, rows.length*cw, bh - 2);
+    x.fillStyle = '#ffffffcc'; x.textAlign = 'left'; x.fillText(`NODE ${n} · mic`, 8, k*bh + W*.035);
+    x.fillStyle = '#ffffff88'; x.textAlign = 'right'; x.fillText('4 kHz', W-6, k*bh + W*.035); x.fillText('0', W-6, k*bh + bh - 8);
+  });
+  if (!nodes.length) { x.fillStyle = css('--dim'); x.textAlign = 'center'; x.fillText('waiting for audio…', W/2, H/2); }
+}
+
+function drawTL() {
+  const c = $('tl'), x = fit(c), W = c.width, H = c.height; x.clearRect(0,0,W,H);
+  const pad = {l: W*.1, r: W*.03, t: 10, b: 22}, w = W-pad.l-pad.r, h = H-pad.t-pad.b;
+  [[0,.35,C.gr],[.35,.8,C.am],[.8,1,C.rd]].forEach(([a,b,col]) => { x.fillStyle = col + '14'; x.fillRect(pad.l, pad.t + h*(1-b), w, h*(b-a)); });
+  x.strokeStyle = css('--line'); x.fillStyle = css('--dim'); x.font = `${W*.04}px ${css('--mono')}`; x.textAlign = 'right'; x.lineWidth = 1;
+  for (const v of [0,.35,.8,1]) { const yy = pad.t + h*(1-v); x.beginPath(); x.moveTo(pad.l, yy); x.lineTo(W-pad.r, yy); x.stroke(); x.fillText(Math.round(v*100), pad.l-6, yy+4); }
+  const tl = S ? S.timeline : []; if (tl.length < 2) return;
+  const t1 = tl.at(-1)[0], span = 120, X = t => pad.l + w*(1 - (t1 - t)/span), Y = v => pad.t + h*(1-v);
+  const g = x.createLinearGradient(0, pad.t, 0, pad.t+h); g.addColorStop(0, C.rd+'88'); g.addColorStop(1, C.rd+'00');
+  x.beginPath(); tl.forEach((p,i) => { const xx = Math.max(pad.l, X(p[0])); i ? x.lineTo(xx, Y(p[1])) : x.moveTo(xx, Y(p[1])); }); x.lineTo(X(t1), pad.t+h); x.lineTo(Math.max(pad.l, X(tl[0][0])), pad.t+h); x.closePath(); x.fillStyle = g; x.fill();
+  x.beginPath(); tl.forEach((p,i) => { const xx = Math.max(pad.l, X(p[0])); i ? x.lineTo(xx, Y(p[1])) : x.moveTo(xx, Y(p[1])); }); x.strokeStyle = C.cy; x.lineWidth = 2; x.stroke();
+  tl.forEach((p,i) => { if (i && p[2] !== tl[i-1][2]) { const xx = X(p[0]); x.strokeStyle = (LV[p[2]]||LV.CLEAR)[1]; x.setLineDash([3,3]); x.beginPath(); x.moveTo(xx, pad.t); x.lineTo(xx, pad.t+h); x.stroke(); x.setLineDash([]); } });
+  x.fillStyle = css('--dim'); x.textAlign = 'left'; x.fillText('-2m', pad.l, H-5); x.textAlign = 'right'; x.fillText('now', W-pad.r, H-5);
+}
+function draw() { drawGauge(); drawMap(); drawSpec(); drawTL(); }
+(function loop(){ draw(); if (S) matrix(S.matrix || S.fusion.level, Date.now()/1000); $('pClock').textContent = new Date().toLocaleTimeString([], {hour12:false}); requestAnimationFrame(() => setTimeout(loop, 66)); })();
+
+// ---------- controls
+const post = u => fetch(u, {method:'POST'}).catch(()=>{});
+$('bDemo').onclick = () => { trail = []; post('/api/demo/start'); };
+$('bStop').onclick = () => { trail = []; post('/api/demo/stop'); };
+document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => post('/api/test/' + b.dataset.t));
+connect();
+setInterval(() => { if (!ws || ws.readyState !== 1) fetch('/api/state').then(r => r.json()).then(j => { S = j; onState(); }).catch(()=>{}); }, 2000);
+</script>
+</body>
+</html>
