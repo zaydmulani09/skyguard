@@ -15,7 +15,7 @@ if [[ "${1:-}" != "--on-device" ]]; then
   ssh $SSH_OPTS "${UNOQ_USER}@${UNOQ_HOST}" 'echo ok: $(hostname) $(uname -m)'
   tar --exclude=.venv --exclude=.git --exclude=__pycache__ --exclude='*.db' --exclude=snapshots --exclude=runs --exclude=models -czf - . \
     | ssh $SSH_OPTS "${UNOQ_USER}@${UNOQ_HOST}" 'mkdir -p ~/skyguard && tar -xzf - -C ~/skyguard'
-  ssh -t $SSH_OPTS "${UNOQ_USER}@${UNOQ_HOST}" "cd ~/skyguard && sed -i 's/\$//' deploy/*.sh deploy/*.service .env && bash deploy/unoq.sh --on-device"
+  ssh -t $SSH_OPTS "${UNOQ_USER}@${UNOQ_HOST}" 'cd ~/skyguard && sed -i s/\x0d$// deploy/*.sh deploy/*.service .env && bash deploy/unoq.sh --on-device'
   exit 0
 fi
 
