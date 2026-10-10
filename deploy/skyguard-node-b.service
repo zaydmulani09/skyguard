@@ -1,0 +1,17 @@
+[Unit]
+Description=SkyGuard Node B (Arduino UNO Q: Wi-Fi/BLE scanning + LED matrix)
+After=network-online.target arduino-router.service
+Wants=network-online.target
+
+[Service]
+User=__USER__
+WorkingDirectory=__APP__
+EnvironmentFile=-__APP__/.env
+Environment=SKYGUARD_PROFILE=unoq
+ExecStart=__APP__/.venv/bin/python -m skyguard node --id B
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

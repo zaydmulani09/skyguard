@@ -2,7 +2,6 @@
 from __future__ import annotations
 import base64, json, logging, os, queue, threading, time
 import numpy as np
-import cv2
 from .core import Detection
 from . import hal
 from .detectors.acoustic import AcousticDetector
@@ -86,6 +85,7 @@ class NodeRunner:
                 log.warning("acoustic: %s", e); time.sleep(1)
 
     def _vision(self):
+        import cv2
         cam, last_det, last_fr = self.dr["camera"], 0, 0
         while not self.stop.is_set():
             fr = cam.read()

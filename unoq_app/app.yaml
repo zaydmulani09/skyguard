@@ -1,0 +1,6 @@
+name: skyguard-matrix
+description: SkyGuard Node B LED matrix (idle sweep / possible / flashing warning), driven over the Arduino Router bridge
+icon: 🛡️
+version: 1.0.0
+ports: []
+bricks: []

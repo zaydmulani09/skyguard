@@ -1,0 +1,18 @@
+[Unit]
+Description=SkyGuard hub (Node A: sensors + fusion + dashboard)
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+User=__USER__
+WorkingDirectory=__APP__
+EnvironmentFile=-__APP__/.env
+Environment=SKYGUARD_PROFILE=pi
+ExecStart=__APP__/.venv/bin/python -m skyguard run
+Restart=always
+RestartSec=3
+# passive-only: no capabilities needed, nothing is injected on any radio
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

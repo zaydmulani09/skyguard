@@ -185,7 +185,6 @@ class UnoQMatrix:
     def __init__(self, cfg: dict | None = None):
         import msgpack
         self.mp, self.msgid, self.last = msgpack, 0, None
-        self._call(0)
 
     def _call(self, mode: int):
         s = socket.socket(socket.AF_UNIX); s.settimeout(3); s.connect(self.SOCK)
@@ -199,7 +198,10 @@ class UnoQMatrix:
     def set(self, level: str):
         mode = {"CLEAR": 0, "POSSIBLE": 2, "DRONE DETECTED": 1}.get(level, 0)
         if mode != self.last:
-            self._call(mode); self.last = mode
+            try:
+                self._call(mode); self.last = mode
+            except OSError:           # router/sketch not up yet: retry on the next poll
+                pass
 
 
 class NestSpeaker:

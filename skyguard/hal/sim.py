@@ -3,7 +3,6 @@ the microphone driver synthesizes audio, the Wi-Fi driver emits beacon-like AP l
 from __future__ import annotations
 import math, random, time
 import numpy as np
-import cv2
 from ..core import bearing_deg, dist
 from ..detectors.rf import encode_remote_id_for_tests
 
@@ -132,6 +131,7 @@ class SimCamera:
     W, H = 640, 360
 
     def __init__(self, world: World, node: str, cfg: dict):
+        import cv2
         self.w = world
         yy = np.linspace(0, 1, self.H)[:, None, None]
         sky = (np.array([190, 140, 90]) * (1 - yy) + np.array([235, 215, 170]) * yy).astype(np.uint8)  # BGR gradient
@@ -142,6 +142,7 @@ class SimCamera:
         self.truth: list[dict] = []
 
     def read(self) -> np.ndarray:
+        import cv2
         fr = self.bg.copy()
         self.truth = []
         pos = self.w.drone_pos()

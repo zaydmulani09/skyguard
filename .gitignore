@@ -8,7 +8,5 @@ tts_cache/
 results_audio_full.log
 datasets/
 runs/
-models/*.pt
-models/*.onnx
 !models/.keep
 .pytest_cache/
