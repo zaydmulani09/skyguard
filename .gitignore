@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+*.db
+snapshots/
+tts_cache/
+results_audio_full.log
+datasets/
+runs/
+models/*.pt
+models/*.onnx
+!models/.keep
+.pytest_cache/

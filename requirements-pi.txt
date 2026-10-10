@@ -1,0 +1,6 @@
+-r requirements.txt
+smbus2
+bleak
+pychromecast
+gTTS
+sounddevice

@@ -1,0 +1,58 @@
+{
+ "n_train": 1892,
+ "n_test": 772,
+ "groups_train": 1113,
+ "groups_test": 476,
+ "auc_test": 0.9493,
+ "test_at_thr": {
+  "thr": 0.74,
+  "tp": 285,
+  "fp": 10,
+  "fn": 86,
+  "tn": 391,
+  "precision": 0.9661,
+  "recall": 0.7682,
+  "fpr": 0.0249,
+  "accuracy": 0.8756
+ },
+ "test_at_0.5": {
+  "thr": 0.5,
+  "tp": 327,
+  "fp": 45,
+  "fn": 44,
+  "tn": 356,
+  "precision": 0.879,
+  "recall": 0.8814,
+  "fpr": 0.1122,
+  "accuracy": 0.8847
+ },
+ "train_at_thr": {
+  "thr": 0.74,
+  "tp": 717,
+  "fp": 18,
+  "fn": 244,
+  "tn": 913,
+  "precision": 0.9755,
+  "recall": 0.7461,
+  "fpr": 0.0193,
+  "accuracy": 0.8615
+ },
+ "weights": {
+  "comb": 0.253,
+  "nh": 0.399,
+  "stab": 0.197,
+  "flat": 0.383,
+  "tilt": 0.119,
+  "tonal": -0.241,
+  "comb_max_frame": 0.786,
+  "b0": 1.853,
+  "b1": -0.29,
+  "b2": 0.195,
+  "b3": -0.188,
+  "b4": 0.308,
+  "b5": 0.455,
+  "b6": 0.987,
+  "cent": -0.794
+ },
+ "bias": -0.236
+}

@@ -1,0 +1,88 @@
+# SkyGuard config. Switch hardware with ONE line:  profile = "sim" | "laptop" | "pi" | "unoq"
+# (or env SKYGUARD_PROFILE=pi). Each profile picks a driver per device.
+profile = "sim"
+
+[hub]            # Node A serves dashboard + fuses everything
+host = "0.0.0.0"
+port = 8000
+url = "http://127.0.0.1:8000"   # where Node B posts; set HUB_URL in .env on the UNO Q
+db = "skyguard.db"
+snapshots = "snapshots"
+
+[room]           # metres, +y = north. Used by localization + dashboard map
+w = 12.0
+h = 8.0
+node_a = [1.0, 1.0]
+node_b = [11.0, 7.0]
+camera_heading_deg = 45.0   # compass bearing the Node A camera points at (0=N, 90=E)
+camera_hfov_deg = 70.0      # Logitech webcam ~ 60-78 deg
+
+[rf]
+p0_dbm = -50.0   # RSSI at 1 m
+path_loss_n = 2.7
+wifi_scan_s = 3.0
+ble_scan_s = 4.0
+
+[fusion]
+window_s = 8.0
+enter = 0.80
+exit = 0.60
+possible = 0.35
+min_hold_s = 5.0
+speak_cooldown_s = 30.0
+
+[vision]
+weights = "models/drone_n.pt"      # falls back to onnx / coco heuristic automatically
+onnx = "models/drone_n.onnx"
+imgsz = 416
+conf = 0.30
+
+[acoustic]
+sample_rate = 16000
+window_s = 1.0
+model = "models/acoustic.json"
+
+[profiles.sim]
+camera = "sim"
+mic = "sim"
+wifi = "sim"
+ble = "sim"
+lcd = "sim"
+matrix = "sim"
+speaker = "sim"
+vision = "sim"
+
+[profiles.laptop]   # use this laptop's own webcam/mic/wifi as stand-ins for the real pipelines
+camera = "webcam"
+mic = "sounddevice"
+wifi = "auto"
+ble = "sim"
+lcd = "sim"
+matrix = "sim"
+speaker = "laptop"
+vision = "yolo"
+
+[profiles.pi]       # Node A: Raspberry Pi 4 + Grove Base Hat
+camera = "webcam"
+mic = "alsa"
+wifi = "nmcli"
+ble = "bleak"
+lcd = "grove"
+matrix = "sim"
+speaker = "nest"
+vision = "yolo"
+
+[profiles.unoq]     # Node B: Arduino UNO Q (Debian MPU + STM32 MCU matrix)
+camera = "none"
+mic = "none"
+wifi = "nmcli"
+ble = "bleak"
+lcd = "none"
+matrix = "unoq"
+speaker = "none"
+vision = "none"
+
+[nest]
+name = "Nest Mini"        # chromecast friendly name; override with NEST_NAME in .env
+tts = "piper"             # piper -> gtts -> laptop
+piper_model = "models/en_US-lessac-low.onnx"
