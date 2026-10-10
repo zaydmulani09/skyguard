@@ -16,7 +16,7 @@ python -m skyguard run                                 # → http://localhost:80
 Open the dashboard and press **▶ Run demo** — a scripted drone approaches, is heard, sniffed on Wi-Fi and BLE, seen on camera, the alert fires, then it leaves.
 `pytest -q` runs the 20 tests. Real hardware = change one line (`profile = "pi"`), see [HARDWARE_SETUP.md](HARDWARE_SETUP.md).
 
-![dashboard](docs/dashboard.png)
+![dashboard](docs/dashboard.jpg)
 
 ## The problem
 Unauthorized drones over airports, stadiums, prisons and wildfire fire-lines are a real safety problem (a hobby drone grounds
