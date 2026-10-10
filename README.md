@@ -14,7 +14,7 @@ pip install -r requirements.txt
 python -m skyguard run                                 # → http://localhost:8000  (simulation profile, no hardware)
 ```
 Open the dashboard and press **▶ Run demo** — a scripted drone approaches, is heard, sniffed on Wi-Fi and BLE, seen on camera, the alert fires, then it leaves.
-`pytest -q` runs the 20 tests. Real hardware = change one line (`profile = "pi"`), see [HARDWARE_SETUP.md](HARDWARE_SETUP.md).
+`pytest -q` runs the 25 tests. Real hardware = change one line (`profile = "pi"`), see [HARDWARE_SETUP.md](HARDWARE_SETUP.md).
 
 ![dashboard](docs/dashboard.jpg)
 
