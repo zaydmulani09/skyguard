@@ -52,3 +52,19 @@ def test_hal_selects_drivers_by_profile():
     cfg["drivers"] = dict(cfg["profiles"]["unoq"])        # real profile: no webcam/mic on the UNO Q
     out = hal.build(cfg, w, "B")
     assert "camera" not in out and "mic" not in out
+
+
+def test_remote_node_ingest_http(tmp_path):
+    """Node B (UNO Q) posts batches of messages to /api/ingest; hub must register health + detections."""
+    cfg = load_config(); cfg["hub"]["db"] = str(tmp_path / "t.db"); cfg["hub"]["snapshots"] = str(tmp_path / "snap")
+    app = create_app(cfg)
+    with TestClient(app) as c:
+        now = time.time()
+        batch = [{"type": "health", "node": "Z", "t": now, "cpu": 12.0, "temp": 41.0, "mem": 30.0, "sensors": ["wifi", "ble"], "sim": False},
+                 {"type": "rf", "node": "Z", "kind": "wifi", "aps": [{"ssid": "TELLO-AAAAAA", "bssid": "60:60:1F:00:00:01", "rssi": -60, "score": 0.97, "why": "ssid:Tello"}], "sim": False},
+                 {"type": "detection", "node": "Z", "sensor": "wifi", "score": 0.97, "meta": {"rssi": -60}, "t": now, "sim": False}]
+        assert c.post("/api/ingest", json=batch).json()["ok"]
+        st = c.get("/api/state").json()
+        assert st["health"]["Z"]["temp"] == 41.0
+        assert any(r["node"] == "Z" and r["ssid"] == "TELLO-AAAAAA" for r in st["rf"])
+        assert "Z:wifi" in st["latest"]
