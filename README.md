@@ -109,19 +109,20 @@ A **Bayesian grid filter** (0.25 m cells, extending 6 m past the walls because d
 *predict* = Gaussian blur (the drone moves), *update* = `P ← P · ∏_i exp(−(RSSI_i − model_i(x,y))²/2σ²)`. When the camera sees a drone, its bearing adds a Gaussian
 wedge likelihood from Node A. Output: MAP/mean position, spread, 3×3 **zone** posterior, compass sector, and approaching/leaving from the RSSI slope.
 
-**Honest accuracy** (`scripts/eval_loc.py`, 150 random room positions × 20 samples, 12×8 m room, log-normal shadowing + model mismatch):
+**Honest accuracy** (`scripts/eval_loc.py`, 150 random room positions × 20 RSSI samples at 2 Hz, 12×8 m room, nodes on the same wall, log-normal shadowing + model mismatch):
 
-| shadowing σ | model error (n, P0) | median error | 90th pct | exact zone (9 zones) | zone ±1 |
+| shadowing σ | model error (path-loss n, P0) | median error | 90th pct | exact zone (9 zones) | zone ±1 |
 |---|---|---|---|---|---|
-| 2 dB | none | 1.65 m | 4.1 m | 59 % | 83 % |
-| 4 dB | none | 1.74 m | 4.1 m | 61 % | 85 % |
-| 6 dB | none | 1.90 m | 4.2 m | 57 % | 85 % |
-| 4 dB | σn=0.3, σP0=3 dB | 2.24 m | 4.9 m | 44 % | 86 % |
-| 6 dB | σn=0.5, σP0=5 dB | 2.80 m | 8.2 m | 39 % | 88 % |
-| 6 dB + camera bearing | σn=0.5, σP0=5 dB | **1.31 m** | 7.0 m | **64 %** | **100 %** |
+| 2 dB | calibrated | **0.82 m** | 1.4 m | **87 %** | 100 % |
+| 4 dB | calibrated | 0.94 m | 1.6 m | 81 % | 100 % |
+| 6 dB | calibrated | 1.15 m | 2.1 m | 73 % | 99 % |
+| 4 dB | σn = 0.3, σP0 = 3 dB | 2.02 m | 5.0 m | 47 % | 90 % |
+| 6 dB | σn = 0.5, σP0 = 5 dB | 2.71 m | 7.7 m | 39 % | 84 % |
+| 6 dB + camera bearing | σn = 0.5, σP0 = 5 dB | 1.67 m | 6.7 m | 51 % | 94 % |
 
-Two RSSI anchors give two circles that intersect in *two* points, so this is **zone-level, not metre-level**; the mirror ambiguity is resolved by room bounds, the motion
-prior and — much better — the camera bearing. It is a simulation of the algorithm, not a field measurement.
+Two RSSI anchors give two circles that intersect in *two* points (a mirror image across the line joining the nodes). **Put both nodes on one wall**: the mirror solution then lands outside the room, and a mild outside-room prior picks the right one
+(with nodes on opposite corners the same estimator scored 57–61 % exact-zone at best). The dominant error is *model mismatch* — walls, people and antennas shift `P0` and `n` per venue — so **calibrate `p0_dbm` and `path_loss_n`** in `config.toml` (stand 1 m from a node with a phone hotspot, then at 5 m).
+This is a simulation of the algorithm, not a field measurement; the real result will be zone-level at best.
 
 ### 6 · Fusion
 Per sensor *s* on node *n*, evidence is the decayed max in an 8 s window: `e[s,n] = max_i score_i · e^{−(now−t_i)/τ}`, τ = 4 s. `E_s = max_n e[s,n]`. Then a weighted log-odds sum
