@@ -18,7 +18,7 @@ from .core import ZONES, zone_of, bearing_deg, compass
 
 
 class Localizer:
-    def __init__(self, room: dict, rf: dict, res: float = 0.25, sigma_db: float = 5.0, margin: float = 8.0):
+    def __init__(self, room: dict, rf: dict, res: float = 0.25, sigma_db: float = 5.0, margin: float = 6.0):
         self.w, self.h = room["w"], room["h"]
         self.nodes = {"A": tuple(room["node_a"]), "B": tuple(room["node_b"])}
         self.cam_heading = room.get("camera_heading_deg", 0.0)

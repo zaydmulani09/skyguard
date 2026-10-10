@@ -169,11 +169,12 @@ class Hub:
         if lvl == DRONE and self.cur_event is None:
             cur = self.db.execute("INSERT INTO events(t,level,conf,sources,zone,compass,snapshot,detail,sim) VALUES(?,?,?,?,?,?,?,?,?)",
                                   (now, lvl, f["confidence"], ",".join(f["sources"]), zone, comp, self._snapshot(now), detail, int(self.sim_active())))
-            self.cur_event = cur.lastrowid; self.db.commit()
+            self.cur_event = cur.lastrowid; self.ev_src = set(f["sources"]); self.db.commit()
         elif self.cur_event is not None:
             if lvl == DRONE:
+                self.ev_src |= set(f["sources"])          # union: every sensor that fired during the event
                 self.db.execute("UPDATE events SET conf=max(conf,?), sources=?, zone=?, compass=?, detail=? WHERE id=?",
-                                (f["confidence"], ",".join(f["sources"]), zone, comp, detail, self.cur_event))
+                                (f["confidence"], ",".join(s for s in SENSORS if s in self.ev_src), zone, comp, detail, self.cur_event))
             else:
                 self.db.execute("UPDATE events SET t_end=? WHERE id=?", (now, self.cur_event)); self.cur_event = None
             self.db.commit()
