@@ -148,3 +148,10 @@ def test_acoustic_features_comb_detects_harmonics():
     f = features(synth_drone(1, 10, rng, 200) + 0.2 * synth_noise(1, rng))
     g = features(synth_noise(1, rng))
     assert f["comb"] > g["comb"] + 3 and abs(f["f0"] - 200) < 12
+
+
+def test_dark_scene_lowers_vision_weight():
+    a, b = Fusion(cfg["fusion"]), Fusion(cfg["fusion"]); b.scale["vision"] = 0.6
+    for f in (a, b):
+        add2(f, "vision", .9, t=10); add2(f, "acoustic", .7, t=10)
+    assert b.step(10)["confidence"] < a.step(10)["confidence"]

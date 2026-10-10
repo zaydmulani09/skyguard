@@ -163,6 +163,7 @@ These are replays of modelled per-tick statistics, not field data; real-world fa
 * **LCD (Grove 16×2 RGB)** — `DRONE 91% NE` / `VIS+AUD+RF`; backlight green / amber / flashing red.
 * **UNO Q LED matrix** — slow radar sweep when clear, scan bar when possible, flashing ⚠ on detection (STM32 sketch ← Arduino Router RPC).
 * **Nest Mini** — rate-limited (30 s) spoken alert "Drone detected, north east, confidence 91 percent": Piper (offline) → gTTS → laptop speaker; WAV served over local HTTP and cast with `pychromecast`.
+* **Grove light + air-quality sensors** (Base Hat ADC) adapt fusion: dark scene → vision weight ×0.6, smoke/haze → ×0.8 (and shown on the dashboard as wildfire context).
 * **Dashboard** — live camera with boxes, rotor-harmonic waterfall, RF emitter table (flagged / weak / benign), room map with both nodes, camera FOV, RSSI rings, posterior heat-map and zone, fusion gauge, threat timeline, event log with snapshots + which sensors fired, node health (CPU/temp/mem). Dark console theme + light toggle, phone-friendly.
 * **Demo mode & test buttons** — scripted event (approach → audio → RF → vision → ALERT → leave) and per-detector test buttons; both drive the full pipeline.
 * **SQLite** event log (`skyguard.db`), **systemd** services for the Pi and UNO Q (`deploy/`).

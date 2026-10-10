@@ -177,6 +177,20 @@ class GroveLcd:
             self.color(*{"green": (0, 160, 40), "amber": (255, 120, 0), "red": (255, 0, 0)}.get(color, (0, 0, 80)))
 
 
+class GroveEnv:
+    """Grove light + air-quality sensors via the Base Hat's MM32 ADC (I2C 0x04, raw 12-bit @ reg 0x10+ch). Returns 0..1."""
+    def __init__(self, cfg: dict, bus: int = 1):
+        from smbus2 import SMBus
+        self.bus, self.lc, self.ac = SMBus(bus), cfg["env"]["light_ch"], cfg["env"]["air_ch"]
+        self.read()
+
+    def _raw(self, ch):
+        return self.bus.read_word_data(0x04, 0x10 + ch) / 4095.0
+
+    def read(self) -> dict:
+        return {"light": min(1.0, self._raw(self.lc)), "air": min(1.0, self._raw(self.ac))}
+
+
 class UnoQMatrix:
     """UNO Q 8x13 matrix is owned by the STM32 MCU. The sketch (unoq_app/sketch) exposes Bridge.provide('matrix', mode)
     and we call it over the Arduino Router MessagePack-RPC unix socket /var/run/arduino-router.sock.

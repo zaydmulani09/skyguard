@@ -52,6 +52,7 @@ lcd = "sim"
 matrix = "sim"
 speaker = "sim"
 vision = "sim"
+env = "sim"
 
 [profiles.laptop]   # use this laptop's own webcam/mic/wifi as stand-ins for the real pipelines
 camera = "webcam"
@@ -62,6 +63,7 @@ lcd = "sim"
 matrix = "sim"
 speaker = "laptop"
 vision = "yolo"
+env = "sim"
 
 [profiles.pi]       # Node A: Raspberry Pi 4 + Grove Base Hat
 camera = "webcam"
@@ -72,6 +74,7 @@ lcd = "grove"
 matrix = "sim"
 speaker = "nest"
 vision = "yolo"
+env = "grove"
 
 [profiles.unoq]     # Node B: Arduino UNO Q (Debian MPU + STM32 MCU matrix)
 camera = "none"
@@ -82,8 +85,13 @@ lcd = "none"
 matrix = "unoq"
 speaker = "none"
 vision = "none"
+env = "none"
 
 [nest]
 name = "Nest Mini"        # chromecast friendly name; override with NEST_NAME in .env
 tts = "piper"             # piper -> gtts -> laptop
 piper_model = "models/en_US-lessac-low.onnx"
+
+[env]   # Grove analog sensors on the Base Hat ADC (A-ports): light -> trust camera less in the dark, air quality -> smoke/haze context
+light_ch = 0
+air_ch = 2

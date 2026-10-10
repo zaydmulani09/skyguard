@@ -8,9 +8,10 @@
 * Numbers (README): audio P 0.966 / R 0.768 / FPR 2.5 % / AUC 0.949 (held-out recordings); vision P 0.939 / R 0.921 / mAP50 0.951 (203 val imgs, 74 ms/frame on laptop); fusion 0 false DRONE alarms in a replayed quiet hour vs 100/36/8 per single sensor; localization median 0.8–1.2 m calibrated / 2–2.7 m mis-calibrated (simulated).
 
 ## Tested how
-`pytest -q` → **25 passed** (fusion, localization, RF matcher, Remote ID round-trip, acoustic, hub end-to-end demo→DRONE→LCD/Nest/event row, test buttons, remote-node ingest, signed-ingest forgery/replay rejection, HAL selection, Grove-LCD byte sequence vs fake I²C, UNO Q msgpack-RPC frame, nmcli parser, RF calibration fit). Evals: `scripts/eval_audio.py`, `eval_loc.py`, `eval_fusion.py`, `train_vision.py` (results in `results/`).
+`pytest -q` → **26 passed** (fusion, localization, RF matcher, Remote ID round-trip, acoustic, hub end-to-end demo→DRONE→LCD/Nest/event row, test buttons, remote-node ingest, signed-ingest forgery/replay rejection, HAL selection, Grove-LCD byte sequence vs fake I²C, UNO Q msgpack-RPC frame, nmcli parser, RF calibration fit). Evals: `scripts/eval_audio.py`, `eval_loc.py`, `eval_fusion.py`, `train_vision.py` (results in `results/`).
 
 ## Waiting on hardware (NOT verified — written from documentation)
+* **Grove light/air sensors** via Base Hat ADC (`GroveEnv`: I²C 0x04, reg 0x10+ch) — register map from memory of Seeed grove.py, unverified; wire to A0 (light) / A2 (air).
 * **Grove LCD driver** (`hal/real.py`, follows Seeed `rgb_lcd.cpp`: text 0x3E, backlight v4 @0x62 / v5 @0x30) — byte-level test only.
 * **UNO Q**: LED-matrix sketch (`unoq_app/`, uses `Arduino_RouterBridge` + `Arduino_LED_Matrix.draw(uint8_t[104])` — exact matrix API/header name may need a tweak), Router-socket RPC call, `deploy/unoq.sh` (`arduino-app-cli` flow), Debian `nmcli`/BLE on the board.
 * **Pi**: `deploy/pi.sh` (never run), I²C enable/`i2cdetect`, ALSA webcam mic (`ALSA_DEVICE`), nmcli real dBm (it reports %, mapped roughly), Piper voice download, Pi 4 inference speed (est. 2–3 FPS, unmeasured).

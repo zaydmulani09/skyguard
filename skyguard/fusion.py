@@ -31,6 +31,7 @@ class Fusion:
         self.level = CLEAR
         self._since = 0.0
         self.conf = 0.0
+        self.scale: dict[str, float] = {}      # context weights, e.g. vision x0.6 in the dark
 
     def add(self, d: Detection):
         self.events.append(d)
@@ -56,7 +57,7 @@ class Fusion:
         E = {s: (max(ev[s].values()) if ev[s] else 0.0) for s in SENSORS}
         active = [s for s in SENSORS if E[s] > 0.5]
         both = [s for s in SENSORS if len(ev[s]) >= 2 and min(ev[s].values()) > 0.4]
-        z = BIAS + sum(W[s] * E[s] for s in SENSORS) + A_SENSOR * max(0, len(active) - 1) + A_NODE * len(both)
+        z = BIAS + sum(W[s] * self.scale.get(s, 1.0) * E[s] for s in SENSORS) + A_SENSOR * max(0, len(active) - 1) + A_NODE * len(both)
         conf = 1 / (1 + math.exp(-z))
         rid = any(d.sensor == "ble" and d.meta.get("remote_id") and now - d.t < self.c["window_s"] for d in self.events)
         gate = len(active) >= 2 or rid

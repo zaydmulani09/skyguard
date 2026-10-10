@@ -197,6 +197,14 @@ class SimWifi:
         return [a for a in aps if a["rssi"] > -90]
 
 
+class SimEnv:
+    def __init__(self, world, node, cfg): self.w = world
+
+    def read(self) -> dict:
+        t = time.time()
+        return {"light": 0.72 + 0.03 * math.sin(t / 7), "air": 0.12 + 0.02 * math.sin(t / 5)}
+
+
 class SimBle:
     def __init__(self, world: World, node: str, cfg: dict):
         self.w, self.node, self.rng = world, node, np.random.default_rng(13)

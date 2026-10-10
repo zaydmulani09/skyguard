@@ -166,14 +166,22 @@ class NodeRunner:
             self.emit("ble", 0.95 if rid else 0.0, {"remote_id": True, **rid} if rid else {})
             self.stop.wait(max(0.2, every - (time.time() - t0)))
 
+    def _env(self):
+        while not self.stop.is_set():
+            try:
+                self.sink({"type": "env", "node": self.id, "sim": self.sim, **self.dr["env"].read()})
+            except Exception as e:                           # noqa: BLE001
+                log.warning("env: %s", e)
+            self.stop.wait(2.0)
+
     def _health(self):
         while not self.stop.is_set():
             self.sink({"type": "health", "node": self.id, "t": time.time(), **health(), "sim": self.sim,
-                       "sensors": sorted(k for k in self.dr if k in ("camera", "mic", "wifi", "ble") and self.dr[k] is not None)})
+                       "sensors": sorted(k for k in self.dr if k in ("camera", "mic", "wifi", "ble", "env") and self.dr[k] is not None)})
             self.stop.wait(2.0)
 
     def start(self):
-        spec = [("mic", self._acoustic), ("camera", self._vision), ("wifi", self._wifi), ("ble", self._ble)]
+        spec = [("mic", self._acoustic), ("camera", self._vision), ("wifi", self._wifi), ("ble", self._ble), ("env", self._env)]
         for k, fn in spec:
             if self.dr.get(k) is not None and (k != "camera" or self.vis):
                 self.threads.append(threading.Thread(target=fn, name=f"{self.id}-{k}", daemon=True))

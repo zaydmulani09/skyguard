@@ -49,7 +49,7 @@ def build(cfg: dict, world, node: str, roles: set[str] | None = None) -> dict:
     """roles limits which devices this node owns; hub (A) owns lcd+speaker, B owns matrix."""
     d = cfg["drivers"]; roles = roles or {"camera", "mic", "wifi", "ble", "lcd", "matrix", "speaker", "vision"}
     out: dict = {}
-    def want(k): return k in roles and d[k] != "none"
+    def want(k): return k in roles and d.get(k, "none") != "none"
     if want("camera"):
         out["camera"] = sim.SimCamera(world, node, cfg) if d["camera"] == "sim" else _try("camera", lambda: real.WebcamCamera(cfg))
     if want("mic"):
@@ -66,6 +66,8 @@ def build(cfg: dict, world, node: str, roles: set[str] | None = None) -> dict:
     if "speaker" in roles and d["speaker"] != "none":
         out["speaker"] = (SimSpeaker() if d["speaker"] == "sim" else
                           ((_try("speaker", lambda: real.NestSpeaker(cfg)) or real.LaptopSpeaker()) if d["speaker"] == "nest" else real.LaptopSpeaker()))
+    if want("env"):
+        out["env"] = sim.SimEnv(world, node, cfg) if d.get("env") == "sim" else _try("env", lambda: real.GroveEnv(cfg))
     if want("vision"):
         out["vision_kind"] = d["vision"]
     return out

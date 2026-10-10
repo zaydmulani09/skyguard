@@ -43,6 +43,7 @@ class Hub:
         self.spec: dict[str, dict] = {}
         self.frames: dict[str, dict] = {}; self.frame_seq = 0
         self.health: dict[str, dict] = {}
+        self.env: dict[str, dict] = {}
         self.timeline = collections.deque(maxlen=600)
         self.cur_event: int | None = None
         self.last_speak, self.fres, self.lres = 0.0, {"confidence": 0, "level": CLEAR, "evidence": {k: 0.0 for k in SENSORS}, "sources": [], "cross_node": [], "z": 0}, {}
@@ -58,7 +59,7 @@ class Hub:
         if self.sim_profile:
             self._start_virtual()
         else:
-            self.nodes.append(NodeRunner(self.id, self.cfg, self.world, self.ingest, {"camera", "mic", "wifi", "ble", "vision"}).start())
+            self.nodes.append(NodeRunner(self.id, self.cfg, self.world, self.ingest, {"camera", "mic", "wifi", "ble", "vision", "env"}).start())
         threading.Thread(target=self._loop, daemon=True, name="fusion").start()
         return self
 
@@ -67,7 +68,7 @@ class Hub:
             return
         for nid in ("A", "B"):
             sim_cfg = dict(self.cfg); sim_cfg["drivers"] = self.cfg["profiles"]["sim"]
-            roles = {"camera", "mic", "wifi", "ble", "vision"} if nid == "A" else {"mic", "wifi", "ble"}
+            roles = {"camera", "mic", "wifi", "ble", "vision", "env"} if nid == "A" else {"mic", "wifi", "ble"}
             self.virtual.append(NodeRunner(nid, sim_cfg, self.world, self.ingest, roles, is_sim=True).start())
 
     def _stop_virtual(self):
@@ -99,6 +100,10 @@ class Hub:
                 self.spec[msg["node"]] = msg
             elif typ == "frame":
                 self.frames[msg["node"]] = msg; self.frame_seq += 1
+            elif typ == "env":
+                self.env[msg["node"]] = {**msg, "t": time.time()}
+                lt, air = msg["light"], msg["air"]                    # dark scene / smoke -> camera less reliable
+                self.fusion.scale["vision"] = (0.6 if lt < 0.12 else 1.0) * (0.8 if air > 0.7 else 1.0)
             elif typ == "health":
                 self.health[msg["node"]] = msg
 
@@ -237,7 +242,7 @@ class Hub:
             return {"t": now, "fusion": f, "loc": l, "heat": self.loc.heatmap() if l else None, "truth": truth,
                     "rf": sorted(rf, key=lambda r: (-r["score"] if "score" in r else 0, -r["rssi"]))[:30],
                     "spec": {k: v["rows"] for k, v in self.spec.items()}, "health": self.health,
-                    "events": ev, "timeline": tl, "lcd": {"l1": l1, "l2": l2, "color": col},
+                    "env": self.env, "vision_scale": self.fusion.scale.get("vision", 1.0), "events": ev, "timeline": tl, "lcd": {"l1": l1, "l2": l2, "color": col},
                     "matrix": self.outputs["matrix"].mode if "matrix" in self.outputs and hasattr(self.outputs["matrix"], "mode") else f["level"],
                     "spoken": getattr(self.outputs.get("speaker"), "spoken", [])[-3:],
                     "profile": self.cfg["profile"], "simulated": self.sim_active(), "demo": self.world.scenario == "demo",

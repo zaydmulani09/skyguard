@@ -12,7 +12,10 @@ Do them in order. Anything marked **(first time only)** you can skip on a re-dep
 | **BENFEI USB-Ethernet** | Laptop USB; Ethernet cable → Pi RJ-45 | Direct wired SSH, immune to venue Wi-Fi isolation |
 | **Arduino UNO Q** | USB-C power only (5 V / 3 A) | Needs no screen after first-time setup |
 | **Nest Mini** | Wall power | Same Wi-Fi as the Pi |
-| Grove air-quality + light sensors | — | Unused |
+| Grove **light sensor** | Grove cable → Base Hat **A0** | Dark scene → camera weight ×0.6 in fusion |
+| Grove **air-quality sensor** | Grove cable → Base Hat **A2** | Smoke/haze (>70 %) → camera weight ×0.8; shown on dashboard (wildfire context) |
+
+Channels are set in `config.toml` `[env]` (`light_ch`, `air_ch`). Logitech webcam = `camera = "webcam"` in the `pi` profile (no laptop webcam involved).
 
 ## 1. One shared network = your phone hotspot (first time only)
 1. Phone → hotspot on. **Name/password it exactly the same at home and at the venue** (e.g. `SkyGuardNet` / a password you choose). Devices remember it, so at the venue they just join.

@@ -285,6 +285,7 @@ function renderNodes() {
     const bar = (lab, v, max, unit) => `<div class="m"><span>${lab}</span><div><i style="width:${v==null?0:Math.min(100,v/max*100)}%;background:${v>max*.8?C.rd:v>max*.6?C.am:C.gr}"></i></div><span>${v==null?'—':Math.round(v)+unit}</span></div>`;
     return `<div class="node"><h4>${id==='A'?'Node A · Raspberry Pi 4':'Node B · Arduino UNO Q'}<span class="pill ${up?'ok':''}"><i></i>${up?'online':'offline'}</span></h4>
       ${n? bar('CPU', n.cpu, 100, '%') + bar('TEMP', n.temp, 85, '°C') + bar('MEM', n.mem, 100, '%') : '<div class="empty">no heartbeat</div>'}
+      ${id==='A' && S.env && S.env.A ? bar('LIGHT', S.env.A.light*100, 100, '%').replace(/background:[^"]*/, 'background:'+C.cy) + bar('AIR', S.env.A.air*100, 100, '%') + (S.vision_scale<1 ? '<div class="note">camera weight ×'+S.vision_scale.toFixed(1)+' (dark/smoky scene)</div>' : '') : ''}
       <div class="sens">${(n?.sensors||[]).map(s=>`<span class="tag w">${s}</span>`).join('')}${n?.sim?'<span class="tag">sim</span>':''}</div></div>`;
   }).join('');
 }
