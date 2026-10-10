@@ -1,0 +1,35 @@
+{
+ "quiet_hour": {
+  "per_sensor_alone": {
+   "acoustic": {
+    "alarm_ticks_per_hour": 101,
+    "alarm_events_per_hour": 100
+   },
+   "vision": {
+    "alarm_ticks_per_hour": 36,
+    "alarm_events_per_hour": 36
+   },
+   "wifi": {
+    "alarm_ticks_per_hour": 8,
+    "alarm_events_per_hour": 8
+   }
+  },
+  "fused_false_DRONE_alarms": 0,
+  "fused_alarm_ticks": 0
+ },
+ "drone_events": {
+  "n": 1000,
+  "missed": 0,
+  "median_latency_s": 1.0,
+  "p95_latency_s": 2.0
+ },
+ "assumed": {
+  "vision_fp_per_tick": 0.01,
+  "vision_tp_per_tick": 0.8,
+  "wifi_fp_per_tick": 0.003,
+  "wifi_tp_per_tick": 0.9,
+  "ble_fp_per_tick": 0.0005
+ },
+ "audio_neg_clips": 401,
+ "audio_pos_clips": 371
+}

@@ -13,6 +13,11 @@ def D(sensor, score, node="A", t=0.0, **meta):
     return Detection(node, sensor, score, meta, t)
 
 
+def add2(f, sensor, score, node="A", t=0.0):
+    """A sensor firing on two consecutive ticks (persistent evidence)."""
+    f.add(D(sensor, score, node, t - 1.0)); f.add(D(sensor, score, node, t))
+
+
 # ---------------- fusion ----------------
 def test_single_sensor_never_drone():
     f = Fusion(cfg["fusion"])
@@ -24,15 +29,15 @@ def test_single_sensor_never_drone():
 
 def test_two_sensors_trigger_and_clear():
     f = Fusion(cfg["fusion"])
-    f.add(D("acoustic", 0.8, t=100)); f.add(D("wifi", 0.9, t=100))
+    add2(f, "acoustic", 0.8, t=100); add2(f, "wifi", 0.9, t=100)
     r = f.step(100)
     assert r["level"] == DRONE and r["confidence"] > 0.9 and set(r["sources"]) == {"acoustic", "wifi"}
     assert f.step(130)["level"] == CLEAR                      # evidence aged out of the window
 
 
 def test_cross_node_adds_evidence():
-    a = Fusion(cfg["fusion"]); a.add(D("acoustic", .7, "A", 10)); a.add(D("wifi", .7, "A", 10))
-    b = Fusion(cfg["fusion"]); b.add(D("acoustic", .7, "A", 10)); b.add(D("wifi", .7, "A", 10)); b.add(D("acoustic", .7, "B", 10)); b.add(D("wifi", .7, "B", 10))
+    a = Fusion(cfg["fusion"]); add2(a, "acoustic", .7, "A", 10); add2(a, "wifi", .7, "A", 10)
+    b = Fusion(cfg["fusion"]); [add2(b, s_, .7, n_, 10) for s_ in ("acoustic", "wifi") for n_ in "AB"]
     assert b.step(10)["confidence"] > a.step(10)["confidence"]
     assert b.step(10)["cross_node"] == ["acoustic", "wifi"]
 
@@ -43,9 +48,17 @@ def test_remote_id_alone_is_enough():
 
 
 def test_hysteresis_holds():
-    f = Fusion(cfg["fusion"]); f.add(D("acoustic", .9, t=0)); f.add(D("wifi", .9, t=0))
+    f = Fusion(cfg["fusion"]); add2(f, "acoustic", .9, t=0); add2(f, "wifi", .9, t=0)
     assert f.step(0)["level"] == DRONE
     assert f.step(3)["level"] == DRONE                        # still in hold window
+
+
+def test_lone_blips_do_not_align():
+    """One-off false positives on two sensors within the window must not make a DRONE."""
+    f = Fusion(cfg["fusion"])
+    f.add(D("acoustic", 0.95, t=100)); f.add(D("vision", 0.95, t=101)); f.add(D("wifi", 0.95, t=102))
+    r = f.step(102)
+    assert r["level"] != DRONE and r["sources"] == [], r
 
 
 def test_noise_stays_clear():

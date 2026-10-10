@@ -84,5 +84,6 @@ if __name__ == "__main__":
            "train_at_thr": metrics(y[tr], ptr, thr), "weights": dict(zip(FEATS, [round(float(v), 3) for v in w])), "bias": round(float(b), 3)}
     print(json.dumps(res, indent=1))
     (ROOT / "models").mkdir(exist_ok=True); (ROOT / "results").mkdir(exist_ok=True)
+    np.savez(ROOT / "results" / "audio_test_scores.npz", y=y[te], p=pte, thr=thr)
     (ROOT / "models" / "acoustic.json").write_text(json.dumps({"mu": mu.tolist(), "sd": sd.tolist(), "w": w.tolist(), "b": float(b), "thr": float(thr), "feats": FEATS}))
     (ROOT / "results" / "audio_eval.json").write_text(json.dumps(res, indent=1))

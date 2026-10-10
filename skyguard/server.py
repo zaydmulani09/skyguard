@@ -1,6 +1,6 @@
 """Node A hub: ingest -> fusion + localization -> alerts + SQLite log + FastAPI/WebSocket dashboard."""
 from __future__ import annotations
-import asyncio, base64, collections, json, logging, os, sqlite3, threading, time
+import asyncio, base64, contextlib, collections, json, logging, os, sqlite3, threading, time
 from pathlib import Path
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
@@ -45,7 +45,7 @@ class Hub:
         self.health: dict[str, dict] = {}
         self.timeline = collections.deque(maxlen=600)
         self.cur_event: int | None = None
-        self.last_speak, self.fres, self.lres = 0.0, {"confidence": 0, "level": CLEAR, "evidence": {}, "sources": [], "cross_node": []}, {}
+        self.last_speak, self.fres, self.lres = 0.0, {"confidence": 0, "level": CLEAR, "evidence": {k: 0.0 for k in SENSORS}, "sources": [], "cross_node": [], "z": 0}, {}
         self.demo_until = 0.0
         self.virtual: list[NodeRunner] = []
         self.nodes: list[NodeRunner] = []
@@ -240,18 +240,16 @@ class Hub:
 def create_app(cfg: dict | None = None) -> FastAPI:
     cfg = cfg or load_config()
     hub = Hub(cfg)
-    app = FastAPI(title="SkyGuard")
-    app.state.hub = hub
-
-    @app.on_event("startup")
-    def _up():
+    @contextlib.asynccontextmanager
+    async def life(_):
         hub.start()
-
-    @app.on_event("shutdown")
-    def _down():
+        yield
         hub.stop.set()
         for n in hub.nodes + hub.virtual:
             n.close()
+
+    app = FastAPI(title="SkyGuard", lifespan=life)
+    app.state.hub = hub
 
     web = ROOT / "web"
     app.mount("/snap", StaticFiles(directory=hub.snapdir), name="snap")
