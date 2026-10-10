@@ -121,7 +121,7 @@ wedge likelihood from Node A. Output: MAP/mean position, spread, 3×3 **zone** p
 | 6 dB + camera bearing | σn = 0.5, σP0 = 5 dB | 1.67 m | 6.7 m | 51 % | 94 % |
 
 Two RSSI anchors give two circles that intersect in *two* points (a mirror image across the line joining the nodes). **Put both nodes on one wall**: the mirror solution then lands outside the room, and a mild outside-room prior picks the right one
-(with nodes on opposite corners the same estimator scored 57–61 % exact-zone at best). The dominant error is *model mismatch* — walls, people and antennas shift `P0` and `n` per venue — so **calibrate `p0_dbm` and `path_loss_n`** in `config.toml` (stand 1 m from a node with a phone hotspot, then at 5 m).
+(with nodes on opposite corners the same estimator scored 57–61 % exact-zone at best). The dominant error is *model mismatch* — walls, people and antennas shift `P0` and `n` per venue — so **calibrate `p0_dbm` and `path_loss_n`** in `config.toml` (`python scripts/calibrate_rf.py --ssid <hotspot>` on the node: it fits `P0` and `n` from RSSI at 1/3/6/10 m).
 This is a simulation of the algorithm, not a field measurement; the real result will be zone-level at best.
 
 ### 6 · Fusion
@@ -198,7 +198,7 @@ skyguard/           core.py config+types · fusion.py · localize.py · node.py 
   hal/              sim.py (world + simulated drivers) · real.py (webcam, ALSA/PortAudio mic, nmcli/iw/netsh, bleak, Grove LCD, UNO Q matrix, Nest)
 web/index.html      the whole dashboard (no build step)
 deploy/             pi.sh · unoq.sh · systemd units        unoq_app/  LED-matrix sketch
-scripts/            eval_audio · eval_loc · eval_fusion · train_vision · nest_discover
+scripts/            eval_audio · eval_loc · eval_fusion · train_vision · calibrate_rf · nest_discover
 tests/              fusion · localization · RF matcher · Remote ID · acoustic · hub end-to-end · signed ingest
 ```
 Docs: [HARDWARE_SETUP.md](HARDWARE_SETUP.md) · [DEMO.md](DEMO.md) (2-minute judge script) · [DEVPOST.md](DEVPOST.md) · [STATUS.md](STATUS.md)

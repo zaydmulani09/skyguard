@@ -61,6 +61,10 @@ It syncs the repo, enables I2C, installs deps + Piper voice, **runs `i2cdetect` 
 3. For a real RF test without a drone: phone hotspot named `TELLO-123ABC` for 30 s — the Wi-Fi detector flags it (turn it off after; your real hotspot name must be restored first so nothing else drops).
 4. Walk in front of the camera / play drone audio from a laptop speaker near the webcam mic for the vision / audio paths.
 
+## 8. Optional (5 min, big accuracy win): calibrate RF distance
+Put both nodes along **one wall** (so the RSSI mirror solution falls outside the room). On each node, with a phone hotspot as the beacon:
+`ssh pi@… 'cd skyguard && .venv/bin/python scripts/calibrate_rf.py --ssid <hotspot name>'` → move the phone to 1, 3, 6, 10 m when prompted → paste the printed `p0_dbm` / `path_loss_n` into `config.toml`. Set the real node coordinates (`room.node_a`, `room.node_b`, `room.w/h`) and the camera compass heading there too.
+
 ## Troubleshooting (the likely ones)
 | Symptom | Fix |
 |---|---|
