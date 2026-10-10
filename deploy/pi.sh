@@ -22,7 +22,7 @@ if [[ "${1:-}" != "--on-device" ]]; then
   tar --exclude=.venv --exclude=.git --exclude=__pycache__ --exclude='*.db' --exclude=snapshots --exclude=runs --exclude=tts_cache -czf - . \
     | ssh $SSH_OPTS "${PI_USER}@${PI_HOST}" 'mkdir -p ~/skyguard && tar -xzf - -C ~/skyguard'
   echo "==> running setup on the Pi (sudo password may be asked once)"
-  ssh -t $SSH_OPTS "${PI_USER}@${PI_HOST}" 'cd ~/skyguard && sed -i s/\x0d$// deploy/*.sh deploy/*.service .env && bash deploy/pi.sh --on-device'
+  ssh -t $SSH_OPTS "${PI_USER}@${PI_HOST}" "cd ~/skyguard && sed -i 's/\\x0d\$//' deploy/*.sh deploy/*.service .env && bash deploy/pi.sh --on-device"
   echo; echo "Dashboard:  http://${PI_HOST}:8000   (also reachable over the hotspot IP)"
   exit 0
 fi
