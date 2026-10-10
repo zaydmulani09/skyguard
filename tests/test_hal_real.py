@@ -41,9 +41,8 @@ def test_unoq_matrix_rpc_frame(monkeypatch):
 
 
 def test_nmcli_parser():
-    out = "AA:BB:CC:DD:EE:FF:TELLO-5A3F2C:62:1
-11:22:33:44:55:66:Home WiFi:80:11
-".replace("AA:BB:CC:DD:EE:FF", "AA\:BB\:CC\:DD\:EE\:FF").replace("11:22:33:44:55:66", "11\:22\:33\:44\:55\:66")
+    esc = lambda mac: mac.replace(":", chr(92) + ":")           # nmcli -t escapes ':' inside fields
+    out = esc("AA:BB:CC:DD:EE:FF") + ":TELLO-5A3F2C:62:1" + chr(10) + esc("11:22:33:44:55:66") + ":Home WiFi:80:11" + chr(10)
     aps = real._parse_nmcli(out)
     assert aps[0] == {"ssid": "TELLO-5A3F2C", "bssid": "AA:BB:CC:DD:EE:FF", "rssi": -69, "chan": 1}
     assert aps[1]["ssid"] == "Home WiFi" and aps[1]["rssi"] == -60
