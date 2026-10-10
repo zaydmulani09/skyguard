@@ -7,7 +7,7 @@ from ..core import bearing_deg, dist
 from ..detectors.rf import encode_remote_id_for_tests
 
 SR = 16000
-# (t, x, y) metres; room is 12x8, node A (1,1), node B (11,7). Drone arrives from far NE, hovers mid-room, leaves.
+# (t, x, y) metres; room is 12x8, node A (1,1), node B (11,1) on the same wall. Drone arrives from far NE, hovers mid-room, leaves.
 DEMO_PATH = [(0, 45, 35), (12, 28, 22), (22, 14, 10), (30, 9, 6), (42, 6, 4), (50, 9, 6), (60, 40, 30), (70, 60, 45)]
 AMBIENT_APS = [  # benign neighbours: must NOT trigger. ESP_ plug is a deliberate weak look-alike.
     ("PHS Hack-A-Thon", "A4:2B:B0:11:22:01", -58), ("xfinitywifi", "9C:3D:CF:44:55:02", -71),
@@ -185,7 +185,7 @@ class SimWifi:
         self.w, self.node, self.rng = world, node, np.random.default_rng(11)
 
     def scan(self) -> list[dict]:
-        off = 0 if self.node == "A" else -3
+        off = 0
         aps = [{"ssid": s, "bssid": b, "rssi": r + off + int(self.rng.normal(0, 2)), "chan": 6} for s, b, r in AMBIENT_APS]
         pos = self.w.drone_pos()
         if pos is not None and self.w.active("wifi"):

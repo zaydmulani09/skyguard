@@ -32,7 +32,7 @@ class Hub:
         self.cfg, self.id = cfg, node_id
         self.sim_profile = cfg["profile"] == "sim"
         self.fusion = Fusion(cfg["fusion"])
-        self.loc = Localizer(cfg["room"], cfg["rf"])
+        self.loc = Localizer(cfg["room"], cfg["rf"], sigma_db=cfg["rf"].get("sigma_db", 4.0))
         self.lock = threading.RLock()
         self.world = hal.sim.World({**cfg["room"], "p0_dbm": cfg["rf"]["p0_dbm"], "path_loss_n": cfg["rf"]["path_loss_n"]})
         self.db = sqlite3.connect(ROOT / cfg["hub"]["db"], check_same_thread=False)
@@ -159,8 +159,11 @@ class Hub:
         return name
 
     def _where(self):
+        """(zone, compass) only when the posterior is decisive; otherwise '?' (we never announce a guess as fact)."""
         l = self.lres or {}
-        return l.get("zone", "?"), l.get("compass", "?")
+        if l and l.get("zone_p", 0) >= 0.45 and l.get("spread_m", 99) < 4.5 and (l.get("heard", 0) >= 2 or l.get("cam")):
+            return l["zone"], l["compass"]
+        return "?", "?"
 
     def _events(self, f, now):
         lvl = f["level"]
@@ -196,11 +199,18 @@ class Hub:
             o["lcd"].show(l1, l2, col); self._lastlcd = key
         if "matrix" in o:
             o["matrix"].set(f["level"])
-        if f["level"] == DRONE and "speaker" in o and time.time() - self.last_speak > self.cfg["fusion"]["speak_cooldown_s"]:
-            self.last_speak = time.time()
-            comp = LONG.get(self._where()[1], "")
-            txt = f"Drone detected{', ' + comp if comp else ''}, confidence {int(round(f['confidence'] * 100))} percent"
-            threading.Thread(target=lambda: self._say(txt), daemon=True).start()
+        if f["level"] != DRONE:
+            self._drone_since = self._dir_said = None
+        elif getattr(self, "_drone_since", None) is None:
+            self._drone_since, self._dir_said = time.time(), False
+        if f["level"] == DRONE and "speaker" in o:
+            now = time.time(); comp = LONG.get(self._where()[1], "")
+            first = now - self.last_speak > self.cfg["fusion"]["speak_cooldown_s"] and (comp or now - self._drone_since > 4.0)   # wait <=4 s for a direction fix
+            followup = not self._dir_said and comp and now - self.last_speak > 8.0 and now - self._drone_since > 4.0               # direction arrived late
+            if first or followup:
+                self.last_speak, self._dir_said = now, bool(comp)
+                txt = f"Drone detected{', ' + comp if comp else ''}, confidence {int(round(f['confidence'] * 100))} percent"
+                threading.Thread(target=lambda: self._say(txt), daemon=True).start()
 
     def _say(self, txt):
         try:

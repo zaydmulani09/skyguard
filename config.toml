@@ -13,13 +13,14 @@ snapshots = "snapshots"
 w = 12.0
 h = 8.0
 node_a = [1.0, 1.0]
-node_b = [11.0, 7.0]
+node_b = [11.0, 1.0]   # keep both nodes on ONE wall: the RSSI mirror solution then falls outside the room
 camera_heading_deg = 45.0   # compass bearing the Node A camera points at (0=N, 90=E)
 camera_hfov_deg = 70.0      # Logitech webcam ~ 60-78 deg
 
 [rf]
 p0_dbm = -50.0   # RSSI at 1 m
 path_loss_n = 2.7
+sigma_db = 4.0   # assumed RSSI noise used by the localizer likelihood
 wifi_scan_s = 3.0
 ble_scan_s = 4.0
 

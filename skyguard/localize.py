@@ -28,9 +28,11 @@ class Localizer:
         xs = np.arange(-margin + res / 2, self.w + margin, res); ys = np.arange(-margin + res / 2, self.h + margin, res)
         self.X, self.Y = np.meshgrid(xs, ys)               # [ny, nx]
         self.post = np.ones_like(self.X); self.post /= self.post.sum()
+        self.prior = np.where((self.X >= 0) & (self.X <= self.w) & (self.Y >= 0) & (self.Y <= self.h), 1.0, 0.9)   # mild bias: mirror solution outside the room is less plausible
         self.zi = np.vectorize(lambda x, y: zone_of(x, y, self.w, self.h))(self.X, self.Y)   # outside cells clamp to the edge zone
         self.hist: dict[str, deque] = {"A": deque(maxlen=40), "B": deque(maxlen=40)}
         self.updates = 0
+        self.heard, self.cam = 0, False
 
     # -- model ---
     def rssi_at(self, node: str, x, y):
@@ -65,9 +67,10 @@ class Localizer:
         if heard == 0:                                     # nothing heard -> slowly forget
             self.post = 0.9 * self.post + 0.1 / self.post.size
         else:
-            self.post = self.post * like + 1e-12
+            self.post = self.post * like * self.prior + 1e-12
         self.post /= self.post.sum()
         self.updates += 1
+        self.heard, self.cam = heard, cam_bearing is not None
         return self.summary()
 
     def trend(self) -> tuple[str, float]:
@@ -96,7 +99,7 @@ class Localizer:
         zone = max(zp, key=zp.get)
         tr, slope = self.trend()
         cx, cy = self.w / 2, self.h / 2
-        return {"extent": [-self.m, -self.m, self.w + self.m, self.h + self.m], "inside_p": round(float(p[(self.X >= 0) & (self.X <= self.w) & (self.Y >= 0) & (self.Y <= self.h)].sum()), 3), "x": round(ex, 2), "y": round(ey, 2), "map_x": round(mx, 2), "map_y": round(my, 2),
+        return {"heard": self.heard, "cam": self.cam, "extent": [-self.m, -self.m, self.w + self.m, self.h + self.m], "inside_p": round(float(p[(self.X >= 0) & (self.X <= self.w) & (self.Y >= 0) & (self.Y <= self.h)].sum()), 3), "x": round(ex, 2), "y": round(ey, 2), "map_x": round(mx, 2), "map_y": round(my, 2),
                 "spread_m": round(spread, 2), "zone": zone, "zone_p": round(zp[zone], 3),
                 "compass": compass(bearing_deg((cx, cy), (ex, ey))) if math.hypot(ex - cx, ey - cy) > 0.5 else "C",
                 "trend": tr, "slope_db_s": slope, "zones": {k: round(v, 3) for k, v in zp.items()}}
