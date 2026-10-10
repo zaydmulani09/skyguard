@@ -68,3 +68,21 @@ def test_remote_node_ingest_http(tmp_path):
         assert st["health"]["Z"]["temp"] == 41.0
         assert any(r["node"] == "Z" and r["ssid"] == "TELLO-AAAAAA" for r in st["rf"])
         assert "Z:wifi" in st["latest"]
+
+
+def test_signed_ingest_rejects_forgery(tmp_path, monkeypatch):
+    """Security: with INGEST_KEY set, unsigned / wrongly-signed / replayed batches are refused."""
+    import json
+    from skyguard.node import sign
+    monkeypatch.setenv("INGEST_KEY", "s3cret")
+    cfg = load_config(); cfg["hub"]["db"] = str(tmp_path / "t.db"); cfg["hub"]["snapshots"] = str(tmp_path / "snap")
+    app = create_app(cfg)
+    with TestClient(app) as c:
+        body = json.dumps([{"type": "health", "node": "Q", "t": time.time(), "cpu": 1.0, "sensors": [], "sim": False}]).encode()
+        ts = str(int(time.time()))
+        assert c.post("/api/ingest", content=body).status_code == 401                                          # unsigned
+        assert c.post("/api/ingest", content=body, headers={"X-SG-Time": ts, "X-SG-Sig": "00" * 32}).status_code == 401   # forged
+        old = str(int(time.time()) - 120)
+        assert c.post("/api/ingest", content=body, headers={"X-SG-Time": old, "X-SG-Sig": sign("s3cret", old, body)}).status_code == 401  # replay
+        assert c.post("/api/ingest", content=body, headers={"X-SG-Time": ts, "X-SG-Sig": sign("s3cret", ts, body)}).status_code == 200
+        assert "Q" in c.get("/api/state").json()["health"]

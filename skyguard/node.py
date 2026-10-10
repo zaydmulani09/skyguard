@@ -30,11 +30,18 @@ def health() -> dict:
     return h
 
 
+def sign(key: str, ts: str, body: bytes) -> str:
+    """HMAC-SHA256 over 'timestamp.body' (replay window enforced by the hub)."""
+    import hashlib, hmac
+    return hmac.new(key.encode(), ts.encode() + b"." + body, hashlib.sha256).hexdigest()
+
+
 class HttpSink:
-    """Remote node -> hub. Bounded queue; drops frames first when the link is slow."""
+    """Remote node -> hub. Bounded queue; drops frames first when the link is slow. Signs batches if INGEST_KEY is set."""
     def __init__(self, url: str):
         import requests
         self.url, self.q, self.s = url.rstrip("/") + "/api/ingest", queue.Queue(maxsize=200), requests.Session()
+        self.key = os.environ.get("INGEST_KEY", "")
         threading.Thread(target=self._run, daemon=True).start()
 
     def __call__(self, msg: dict):
@@ -49,7 +56,10 @@ class HttpSink:
             while not self.q.empty() and len(batch) < 40:
                 batch.append(self.q.get_nowait())
             try:
-                self.s.post(self.url, json=batch, timeout=4)
+                body = json.dumps(batch, default=lambda o: o.item() if hasattr(o, "item") else str(o)).encode()
+                ts = str(int(time.time()))
+                hdr = {"Content-Type": "application/json", "X-SG-Time": ts, "X-SG-Sig": sign(self.key, ts, body)} if self.key else {"Content-Type": "application/json"}
+                self.s.post(self.url, data=body, headers=hdr, timeout=4)
             except Exception as e:                           # noqa: BLE001
                 log.debug("hub unreachable: %s", e); time.sleep(1)
 

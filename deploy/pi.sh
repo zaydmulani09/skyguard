@@ -9,6 +9,12 @@ if [[ "${1:-}" != "--on-device" ]]; then
   [[ -f .env ]] || { echo "Missing .env — cp .env.example .env and fill it in"; exit 1; }
   set -a; source .env; set +a
   : "${PI_HOST:?set PI_HOST in .env}"; PI_USER="${PI_USER:-pi}"
+  if [[ -z "${INGEST_KEY:-}" ]]; then            # shared HMAC secret so only our nodes can feed the hub
+    INGEST_KEY="$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' 
+')"
+    grep -q '^INGEST_KEY=' .env && sed -i "s|^INGEST_KEY=.*|INGEST_KEY=$INGEST_KEY|" .env || echo "INGEST_KEY=$INGEST_KEY" >> .env
+    echo "==> generated INGEST_KEY in .env (reused by unoq.sh)"
+  fi
   SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ConnectTimeout=8"
   echo "==> reaching ${PI_USER}@${PI_HOST}"
   ssh $SSH_OPTS "${PI_USER}@${PI_HOST}" 'echo ok: $(hostname) $(uname -m)'

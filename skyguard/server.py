@@ -1,6 +1,6 @@
 """Node A hub: ingest -> fusion + localization -> alerts + SQLite log + FastAPI/WebSocket dashboard."""
 from __future__ import annotations
-import asyncio, base64, contextlib, collections, json, logging, os, sqlite3, threading, time
+import asyncio, base64, contextlib, hmac, collections, json, logging, os, sqlite3, threading, time
 from pathlib import Path
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
@@ -9,7 +9,7 @@ import cv2, numpy as np
 from .core import ROOT, Detection, SENSORS, load_config, compass as _c, zone_of
 from .fusion import Fusion, source_tag, DRONE, POSSIBLE, CLEAR
 from .localize import Localizer
-from .node import NodeRunner
+from .node import NodeRunner, sign
 from . import hal
 
 log = logging.getLogger("skyguard.hub")
@@ -268,7 +268,13 @@ def create_app(cfg: dict | None = None) -> FastAPI:
 
     @app.post("/api/ingest")
     async def ingest(req: Request):
-        hub.ingest(await req.json())
+        body = await req.body()
+        key = os.environ.get("INGEST_KEY", "")
+        if key:                                           # authenticated ingest: HMAC + 30 s replay window
+            ts, sig = req.headers.get("x-sg-time", "0"), req.headers.get("x-sg-sig", "")
+            if not ts.isdigit() or abs(time.time() - int(ts)) > 30 or not hmac.compare_digest(sig, sign(key, ts, body)):
+                return JSONResponse({"error": "bad signature"}, 401)
+        hub.ingest(json.loads(body))
         return {"ok": True}
 
     @app.post("/api/demo/{action}")
