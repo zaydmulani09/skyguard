@@ -65,7 +65,7 @@ def build(cfg: dict, world, node: str, roles: set[str] | None = None) -> dict:
         out["matrix"] = SimMatrix() if d["matrix"] == "sim" else (_try("matrix", lambda: real.UnoQMatrix(cfg)) or SimMatrix())
     if "speaker" in roles and d["speaker"] != "none":
         out["speaker"] = (SimSpeaker() if d["speaker"] == "sim" else
-                          (_try("speaker", lambda: real.NestSpeaker(cfg)) if d["speaker"] == "nest" else real.LaptopSpeaker()))
+                          ((_try("speaker", lambda: real.NestSpeaker(cfg)) or real.LaptopSpeaker()) if d["speaker"] == "nest" else real.LaptopSpeaker()))
     if want("vision"):
         out["vision_kind"] = d["vision"]
     return out
