@@ -125,35 +125,36 @@ class BleakScanner:
 
 # ---- outputs ------------------------------------------------------------------
 class GroveLcd:
-    """Grove LCD RGB Backlight 16x2 on I2C bus 1. Text ctrl @0x3E; RGB driver auto-detected (0x62 / 0x60 / 0x30)."""
+    """Grove LCD RGB Backlight 16x2 on I2C bus 1 (Seeed rgb_lcd.cpp protocol).
+    Text controller @0x3E. Backlight chip: v4.0 -> @0x62 (regs 0x04=R 0x03=G 0x02=B), v5.0 -> @0x30 (regs 0x06/07/08)."""
     def __init__(self, cfg: dict | None = None, bus: int = 1):
         from smbus2 import SMBus
         self.bus = SMBus(bus)
         self.TXT = 0x3E
-        self.rgb = self._detect_rgb()
-        for c in (0x38, 0x39, 0x14, 0x70, 0x56, 0x6C):               # function set / osc / contrast / follower
-            self._cmd(c); time.sleep(0.005)
-        self._cmd(0x38); self._cmd(0x0C); self._cmd(0x01); self._cmd(0x06); time.sleep(0.005)
-        self._flash, self._stop = None, threading.Event()
-        self._init_rgb()
+        for _ in range(4):                                           # HD44780 init: function set (2 line, 5x8) x4
+            self._cmd(0x28); time.sleep(0.005)
+        self._cmd(0x0C); self._cmd(0x01); time.sleep(0.003); self._cmd(0x06)   # display on, clear, entry left
+        self._stop = threading.Event()
+        self.v5 = self._present(0x30)
+        self.rgb = 0x30 if self.v5 else 0x62
+        if self.v5:
+            self._reg(0x00, 0x07); time.sleep(0.001); self._reg(0x04, 0x15)
+        else:
+            self._reg(0x00, 0x00); self._reg(0x08, 0xFF); self._reg(0x01, 0x20)
 
-    def _detect_rgb(self):
-        for a in (0x62, 0x60):
-            try:
-                self.bus.read_byte(a); return a
-            except OSError:
-                pass
-        return 0x62
+    def _present(self, a) -> bool:
+        try:
+            self.bus.read_byte(a); return True
+        except OSError:
+            return False
 
     def _cmd(self, c): self.bus.write_byte_data(self.TXT, 0x80, c)
 
-    def _init_rgb(self):
-        for reg, v in ((0x00, 0), (0x01, 0), (0x08, 0xAA)):
-            self.bus.write_byte_data(self.rgb, reg, v)
+    def _reg(self, reg, v): self.bus.write_byte_data(self.rgb, reg, v)
 
     def color(self, r, g, b):
-        for reg, v in ((0x04, r), (0x03, g), (0x02, b)):
-            self.bus.write_byte_data(self.rgb, reg, v)
+        for reg, v in (((0x06, r), (0x07, g), (0x08, b)) if self.v5 else ((0x04, r), (0x03, g), (0x02, b))):
+            self._reg(reg, v)
 
     def _text(self, l1: str, l2: str):
         self._cmd(0x01); time.sleep(0.003)
