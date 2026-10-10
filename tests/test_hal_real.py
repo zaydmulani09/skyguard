@@ -46,3 +46,13 @@ def test_nmcli_parser():
     aps = real._parse_nmcli(out)
     assert aps[0] == {"ssid": "TELLO-5A3F2C", "bssid": "AA:BB:CC:DD:EE:FF", "rssi": -69, "chan": 1}
     assert aps[1]["ssid"] == "Home WiFi" and aps[1]["rssi"] == -60
+
+
+def test_rf_calibration_fit_recovers_model():
+    import importlib.util, numpy as np
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location("cal", Path(__file__).resolve().parent.parent / "scripts" / "calibrate_rf.py")
+    cal = importlib.util.module_from_spec(spec); spec.loader.exec_module(cal)
+    d = np.array([1, 3, 6, 10]); r = -48 - 10 * 3.1 * np.log10(d) + np.random.default_rng(0).normal(0, 0.5, 4)
+    p0, n = cal.fit(d, r)
+    assert abs(p0 + 48) < 2 and abs(n - 3.1) < 0.3
