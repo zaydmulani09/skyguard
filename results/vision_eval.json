@@ -1,0 +1,10 @@
+{
+ "train_images": 1156,
+ "val_images": 203,
+ "epochs": 12,
+ "imgsz": 416,
+ "precision": 0.9386,
+ "recall": 0.9213,
+ "mAP50": 0.951,
+ "mAP50-95": 0.6741
+}

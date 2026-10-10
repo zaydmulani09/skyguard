@@ -83,7 +83,15 @@ turns a 2.5 % per-second false-positive rate into **0 false alarms per hour** (b
 (e.g. large camera drones) and strong wind are untested.
 
 ### 2 · Vision — YOLOv8-nano + tracker
-`VISION_RESULTS`
+**Weights used: option 2 — fine-tuned by us.** The public drone `best.pt` files we found were YOLOv8x (137 MB, far too heavy for a Pi 4) or vehicle-from-drone detectors, so we fine-tuned COCO-pretrained **YOLOv8n** (3 M params) for 12 epochs at 416 px on the public single-class drone set
+(Kaggle *drone-dataset-uav*, mirrored on Hugging Face `kc34251/Drone-Detection`; 1 156 train / 203 val images, random split, seed 0) and exported **ONNX** (`models/drone_n.onnx`, 12.7 MB) for CPU inference. If the weights are missing the detector degrades to stock COCO + an airplane/bird/kite proxy capped at 0.4 (reported on the dashboard as `coco-proxy`).
+
+| held-out val (203 images) | precision | recall | mAP@0.5 | mAP@0.5:0.95 |
+|---|---|---|---|---|
+| YOLOv8n fine-tuned | **0.939** | **0.921** | **0.951** | 0.674 |
+
+Speed: **74 ms/frame** (≈13 FPS) on a 13th-gen i7 laptop CPU via ONNX Runtime; a Pi 4 is roughly 5–8× slower, i.e. an *estimated* 2–3 FPS (not measured — no Pi yet), enough for tracking a hovering/slow drone. Reproduce: `python scripts/train_vision.py <dataset dir>` ([results/vision_eval.json](results/vision_eval.json)).
+Caveat: the dataset is small and dominated by large, close drones from one source, with a random (not scene-disjoint) split, so these numbers are optimistic for distant small drones. Sample: `docs/vision_sample.jpg`.
 
 Tracking: greedy nearest-centroid association; a track must reach `min_hits = 3` before it counts (kills 1-frame false positives).
 **Bearing** from a pinhole model: `θ = heading + (c_x/W − ½)·HFOV` (Logitech C-series ≈ 60–78°, set in `config.toml`).
